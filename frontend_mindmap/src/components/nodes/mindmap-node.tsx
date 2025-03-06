@@ -108,7 +108,7 @@ const MindMapNode = memo(({
         <div className="p-3">
           {expanded 
             ? <LatexContent content={data && typeof data.content === 'string' ? data.content : ''} />
-            : <p className="text-sm">{truncateText(data && typeof data.content === 'string' ? data.content : '', 120)}</p>
+            : <p className="text-sm">{truncateText(data && typeof data.content === 'string' ? data.content : '', 180)}</p>
           }
         </div>
 

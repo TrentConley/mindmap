@@ -18,6 +18,48 @@ export const transformerNodes: Node<NodeData>[] = [
     position: { x: 0, y: 0 }
   },
   
+  // New category nodes
+  {
+    id: 'architecture',
+    type: 'mindmap',
+    data: {
+      label: 'Core Components',
+      content: 'The transformer architecture consists of several main components working together to process and generate sequences. These include the input processing pipeline, encoder stack, decoder stack, and output layer, each playing a specific role in the model\'s ability to understand and generate language.',
+      status: 'locked'
+    },
+    position: { x: -300, y: 100 }
+  },
+  {
+    id: 'processing',
+    type: 'mindmap',
+    data: {
+      label: 'Key Mechanisms',
+      content: 'The transformer\'s success relies on several key mechanisms that enable efficient sequence processing. Attention mechanisms allow direct modeling of relationships between tokens, positional encoding adds sequence order information, and residual connections with layer normalization enable stable training of deep networks.',
+      status: 'locked'
+    },
+    position: { x: -100, y: 100 }
+  },
+  {
+    id: 'training',
+    type: 'mindmap',
+    data: {
+      label: 'Training Approach',
+      content: 'Transformer models are trained using specialized objectives and optimization techniques. Pretraining on large text corpora followed by fine-tuning on specific tasks enables these models to develop powerful language understanding capabilities.',
+      status: 'locked'
+    },
+    position: { x: 100, y: 100 }
+  },
+  {
+    id: 'applications',
+    type: 'mindmap',
+    data: {
+      label: 'Applications',
+      content: 'Transformer models excel at a wide range of natural language processing tasks, from text generation and summarization to classification and information extraction, making them versatile tools for language understanding and generation.',
+      status: 'locked'
+    },
+    position: { x: 300, y: 100 }
+  },
+  
   // Section 1: Input Processing
   {
     id: 'input_processing',
@@ -27,7 +69,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'The input processing stage in transformer architectures converts raw text data into a numerical representation suitable for neural computation. This critical preprocessing pipeline involves multiple steps that transform unstructured text into structured, information-rich token embeddings. The process begins with tokenization, which segments text into meaningful units, followed by embedding these tokens into a high-dimensional vector space where semantic relationships can be mathematically represented. Finally, positional encoding injects sequence order information, compensating for the transformer\'s inherent lack of sequential processing. This sophisticated input preparation enables the model to capture complex linguistic patterns and contextual relationships necessary for high-quality language understanding and generation. The design choices made in this stage—such as tokenization strategy, embedding dimension, and positional encoding method—significantly influence the model\'s performance, efficiency, and ability to handle various languages and domains.',
       status: 'locked'
     },
-    position: { x: -400, y: 100 }
+    position: { x: -400, y: 200 }
   },
   {
     id: 'text_input',
@@ -47,7 +89,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'Tokenization divides text into discrete units (tokens) that serve as the fundamental processing elements for transformer models. This crucial step bridges the gap between human-readable text and machine-processable numerical representations. Modern transformers predominantly employ subword tokenization methods like Byte-Pair Encoding (BPE), WordPiece, or SentencePiece, which strike a balance between character-level and word-level approaches. These algorithms iteratively merge common character sequences to form a vocabulary of subword units, enabling models to handle rare words by decomposing them into meaningful subcomponents while keeping common words intact. For instance, "unhappiness" might be split into "un" + "happiness" rather than treated as an out-of-vocabulary word. This subword approach significantly reduces vocabulary size (typically 30,000-50,000 tokens versus millions for word-level tokenization) while maintaining semantic granularity and providing robustness across languages, domains, and for handling previously unseen words. The resulting token IDs serve as indices into the embedding layer, forming the foundation for all subsequent transformer operations.',
       status: 'locked'
     },
-    position: { x: -400, y: 200 }
+    position: { x: -350, y: 300 }
   },
   {
     id: 'subword_tokenization',
@@ -119,7 +161,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'The encoder component forms a core architectural pillar of transformer models, responsible for transforming input sequences into contextual representations that capture complex linguistic patterns and relationships. Composed of a stack of identical layers (typically 6-24 in modern implementations), each encoder layer processes the entire sequence in parallel through two main sublayers: multi-head self-attention and a position-wise feed-forward network. The self-attention mechanism allows each token to gather information from all other tokens in the sequence, creating rich contextual representations where each position encodes relevant information from the entire context. These representations become progressively more refined as they flow through the encoder stack, with early layers often capturing syntactic patterns while deeper layers encode more abstract semantic relationships. Each encoder layer maintains the sequence length and embedding dimensionality, ensuring consistent tensor shapes throughout the stack. The encoder\'s bidirectional nature (each token can attend to all other tokens in both directions) makes it particularly powerful for understanding context and is extensively leveraged in encoder-only models like BERT and RoBERTa that excel at tasks requiring deep language understanding. The final output of the encoder stack provides a sequence of highly contextualized token representations that can either serve as input to a decoder (in encoder-decoder architectures) or be directly used for downstream tasks like classification, named entity recognition, or question answering.',
       status: 'locked'
     },
-    position: { x: -200, y: 100 }
+    position: { x: -200, y: 200 }
   },
   {
     id: 'encoder_layer',
@@ -129,7 +171,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'Each encoder layer in a transformer architecture performs a sophisticated sequence transformation through two primary sublayers, all while preserving the input\'s dimensional structure. The first sublayer implements multi-head self-attention, allowing each position to gather relevant information from the entire sequence through parallel attention heads that focus on different representation subspaces. The output of this attention computation passes through a residual connection followed by layer normalization, expressed as $LayerNorm(x + MultiHeadAttention(x))$, which stabilizes training and mitigates the vanishing gradient problem. The second sublayer applies a position-wise feed-forward network—essentially a two-layer neural network with a ReLU activation—independently to each position, enabling the model to process the contextualized representations with additional non-linearity. This is again followed by a residual connection and layer normalization, written as $LayerNorm(x + FFN(x))$. The dimensionality of the representations remains consistent throughout the layer (typically 512-1024), facilitating the stacking of multiple encoder layers. Each successive encoder layer in the stack refines the contextual representations, with early layers often capturing more surface-level patterns and deeper layers developing increasingly abstract and task-relevant features. The dual application of attention (for contextual information gathering) and feed-forward processing (for representation transformation) creates a powerful mechanism for modeling complex linguistic phenomena across various languages and domains.',
       status: 'locked'
     },
-    position: { x: -200, y: 300 }
+    position: { x: -250, y: 350 }
   },
   {
     id: 'multi_head_attention',
@@ -165,11 +207,11 @@ export const transformerNodes: Node<NodeData>[] = [
     id: 'add_norm_1',
     type: 'mindmap',
     data: {
-      label: 'Add & Norm 1',
-      content: 'The Add & Norm operation, applied after the multi-head attention sublayer, combines residual connections with layer normalization to facilitate stable and effective training of deep transformer networks. Formally expressed as $LayerNorm(x + Sublayer(x))$, this operation first adds the sublayer\'s output to its input (forming a residual connection), then applies layer normalization to the result. The residual connection creates a direct path for gradients to flow through the network, mitigating the vanishing gradient problem that traditionally plagued deep neural networks. Meanwhile, layer normalization, which normalizes each feature across the feature dimension independently for each token, helps stabilize the activations\' distributions throughout training. It computes the mean $\\mu$ and standard deviation $\\sigma$ of each token\'s feature vector independently: $\\mu_i = \\frac{1}{d_{model}} \\sum_{j=1}^{d_{model}} x_{ij}$ and $\\sigma_i = \\sqrt{\\frac{1}{d_{model}} \\sum_{j=1}^{d_{model}} (x_{ij} - \\mu_i)^2}$, then normalizes and applies learned scale $\\gamma$ and shift $\\beta$ parameters: $y_{ij} = \\frac{x_{ij} - \\mu_i}{\\sigma_i + \\epsilon} \\gamma_j + \\beta_j$. This normalization reduces internal covariate shift, accelerating convergence and enabling training of very deep transformer stacks. The combination of residual connections and layer normalization is crucial for transformers\' success, allowing models to grow to hundreds of layers in recent architectures while maintaining trainability. This carefully designed regularization strategy helps transformers balance gradient flow, representational capacity, and training stability, contributing significantly to their remarkable effectiveness across diverse language tasks.',
+      label: 'Add & Norm',
+      content: 'The Add & Norm operation, applied after each sublayer in the transformer, combines residual connections with layer normalization to facilitate stable and effective training of deep transformer networks. Formally expressed as $LayerNorm(x + Sublayer(x))$, this operation first adds the sublayer\'s output to its input (forming a residual connection), then applies layer normalization to the result. The residual connection creates a direct path for gradients to flow through the network, mitigating the vanishing gradient problem that traditionally plagued deep neural networks. Meanwhile, layer normalization, which normalizes each feature across the feature dimension independently for each token, helps stabilize the activations\' distributions throughout training. This combination of residual connections and layer normalization is crucial for transformers\' success, allowing models to grow to hundreds of layers in recent architectures while maintaining trainability.',
       status: 'locked'
     },
-    position: { x: -200, y: 400 }
+    position: { x: 0, y: 400 }
   },
   {
     id: 'feed_forward',
@@ -179,17 +221,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'The position-wise feed-forward network (FFN) in each transformer layer provides crucial non-linear processing capacity that complements the attention mechanism\'s ability to relate different positions. Each FFN is identical across all sequence positions but operates on each position independently, functioning essentially as a token-wise multi-layer perceptron. Formally defined as $FFN(x) = max(0, xW_1 + b_1)W_2 + b_2$, it consists of two linear transformations with a ReLU activation in between. The internal dimension $d_{ff}$ (typically 2048-4096) is significantly larger than the model dimension $d_{model}$ (typically 512-1024), creating an expansion-contraction pattern that increases the network\'s representational capacity. This design serves multiple purposes: it adds non-linearity to the model, enabling more complex function approximation than attention alone can provide; it processes the contextualized representations from the attention sublayer to extract higher-level features; and it allows each position to integrate the gathered contextual information in a position-specific manner. Despite its simplicity, the FFN sublayer typically contains the majority of a transformer\'s parameters—approximately two-thirds in the original architecture—highlighting its importance to the model\'s overall expressivity. Some recent variants replace the standard FFN with alternative formulations, such as gated linear units (GLUs) or mixture-of-experts (MoE) designs, further enhancing performance while maintaining the core principle of position-wise feature transformation. The interleaving of attention (for context gathering) and feed-forward layers (for feature processing) creates the powerful representational capacity that makes transformers so effective across a wide range of sequence modeling tasks.',
       status: 'locked'
     },
-    position: { x: 0, y: 400 }
-  },
-  {
-    id: 'add_norm_2',
-    type: 'mindmap',
-    data: {
-      label: 'Add & Norm 2',
-      content: 'The second Add & Norm operation in each transformer layer follows the feed-forward network, completing the layer\'s processing sequence with another application of residual connections and layer normalization. Formally represented as $LayerNorm(x + FFN(x))$, this operation mirrors the first Add & Norm but operates on the output of the feed-forward sublayer instead of the attention sublayer. Like its counterpart, it first creates a residual connection by adding the feed-forward network\'s output to its input, then normalizes the resulting features across the embedding dimension independently for each position. This second application of the Add & Norm pattern reinforces its benefits: the residual connection maintains gradient flow and information propagation through deep networks, while layer normalization stabilizes the activation distributions to prevent internal covariate shift during training. Together, the dual Add & Norm operations in each layer create a rhythmic processing pattern—attention followed by normalization, then feed-forward processing followed by normalization—that enables transformers to grow to remarkable depths while remaining trainable. This carefully engineered normalization strategy contributes significantly to transformers\' ability to model complex linguistic phenomena across hundreds of layers in modern architectures. The full encoding process for a single token thus involves gathering contextual information from other tokens (via attention), normalizing and reinforcing original features (via the first Add & Norm), transforming the contextualized representation (via the feed-forward network), and finally normalizing and reinforcing again (via the second Add & Norm)—a sophisticated sequence of operations repeated identically across all encoder layers.',
-      status: 'locked'
-    },
-    position: { x: 200, y: 400 }
+    position: { x: -50, y: 450 }
   },
   
   // Section 3: Decoder
@@ -201,7 +233,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'The decoder component of transformer architectures generates output sequences by building upon the contextualized representations produced by the encoder. Like the encoder, it consists of a stack of identical layers (typically 6-24), but with a critical architectural difference: each decoder layer contains three sublayers instead of two, introducing a cross-attention mechanism that connects the decoder to the encoder. This design enables the decoder to generate outputs that are informed by both the previously generated sequence and the full input context encoded by the encoder. The decoder operates auto-regressively during generation, producing one token at a time while attending only to previously generated tokens—a behavior enforced by masking future positions in its self-attention mechanism. This causal (left-to-right) attention pattern differs fundamentally from the encoder\'s bidirectional attention, making decoders particularly suited for generative tasks like text completion, translation, and summarization. The decoder\'s self-attention layers capture relationships between output tokens, the cross-attention layers integrate relevant information from the input sequence, and the feed-forward networks transform these contextual representations. In decoder-only architectures like GPT models, the design is simplified to include only masked self-attention without cross-attention, focusing purely on predicting the next token in a sequence. The decoder culminates in an output layer that projects to vocabulary size and applies softmax to produce probability distributions over possible next tokens, enabling both training (via teacher forcing with known targets) and inference (via auto-regressive generation).',
       status: 'locked'
     },
-    position: { x: 200, y: 100 }
+    position: { x: 0, y: 200 }
   },
   {
     id: 'decoder_layer',
@@ -243,7 +275,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'The output processing stage transforms the decoder\'s high-dimensional representations into task-specific predictions through a series of carefully designed computational steps. For language generation tasks, this typically involves a linear projection followed by a softmax activation, converting each token\'s representation into a probability distribution over the vocabulary. In the original transformer design, the output embedding matrix is often tied (weight sharing) with the input embedding matrix, reducing parameter count while leveraging the semantic knowledge encoded in both directions. Beyond basic token prediction, modern transformer architectures implement a diverse array of output mechanisms tailored to specific tasks—classification heads for sentiment analysis or topic classification, span prediction for question answering, regression outputs for rating prediction, or specialized multi-token output formats for structured generation. The final layer design significantly impacts model performance and determines how the rich contextual representations developed through the transformer layers are ultimately applied to solve practical language tasks. This stage may also implement specialized decoding strategies like beam search, nucleus sampling, or constrained generation to control output quality and characteristics. For encoder-only models like BERT, the output stage typically involves task-specific heads attached to particular token representations (often the [CLS] token for classification tasks). The flexibility of this output stage allows the same underlying transformer architecture to be adapted for an extraordinarily diverse range of NLP applications through relatively minor modifications to the final layers, contributing significantly to the architecture\'s remarkable versatility.',
       status: 'locked'
     },
-    position: { x: 400, y: 100 }
+    position: { x: 200, y: 200 }
   },
   {
     id: 'linear_layer',
@@ -276,7 +308,7 @@ export const transformerNodes: Node<NodeData>[] = [
     position: { x: 800, y: -300 }
   },
   
-  // Section 5: Attention Mechanism (renamed from Key Mechanisms)
+  // Key Mechanisms
   {
     id: 'attention_mechanism',
     type: 'mindmap',
@@ -285,7 +317,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'Attention mechanisms form the revolutionary core of transformer architectures, enabling models to dynamically focus on relevant parts of the input when producing each element of the output. At its essence, attention is a content-based addressing mechanism that computes a weighted sum of values (V) based on the compatibility between queries (Q) and keys (K). The canonical scaled dot-product attention, expressed as $Attention(Q, K, V) = \\text{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right)V$, first calculates similarity scores between query and key vectors, scales them by $\\sqrt{d_k}$ to manage variance, applies softmax to obtain a probability distribution, and finally aggregates value vectors according to these weights. This elegant formulation allows every token to gather information from all other tokens based on learned relevance, creating dynamic, input-dependent computational pathways through the network. Transformers implement self-attention (where queries, keys, and values all derive from the same sequence) and, in encoder-decoder models, cross-attention (where queries come from the decoder while keys and values come from the encoder). The multi-head extension further enhances this mechanism by performing attention in multiple representation subspaces simultaneously, enabling the model to capture different types of relationships in parallel. Unlike recurrent or convolutional operations, attention has no inherent distance bias—tokens can interact directly regardless of their separation in the sequence. This property enables superior modeling of long-range dependencies, while the parallelizable nature of attention computation (requiring only matrix multiplication rather than sequential processing) allows for significant computational efficiency on modern hardware. The introduction of this mechanism in the 2017 "Attention Is All You Need" paper marked a paradigm shift in sequence modeling, replacing traditional recurrent and convolutional architectures with attention-based designs that now dominate the field.',
       status: 'locked'
     },
-    position: { x: -200, y: 300 }
+    position: { x: -300, y: 300 }
   },
   {
     id: 'pos_encoding_key',
@@ -295,7 +327,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'Positional encoding addresses a fundamental limitation of pure attention-based architectures: their lack of inherent sequence awareness. Since attention operations process all tokens in parallel without built-in ordering, transformers require explicit position information to distinguish between identical tokens appearing at different positions. The classic solution employs sinusoidal functions of varying frequencies to create unique positional signatures: $PE_{(pos,2i)} = \\sin(pos/10000^{2i/d_{model}})$ and $PE_{(pos,2i+1)} = \\cos(pos/10000^{2i/d_{model}})$. These mathematical expressions generate patterns with carefully designed properties: they produce unique encodings for each position while maintaining consistent magnitude; enable the model to generalize to sequence lengths beyond those seen during training; and allow relative position computation through linear combinations of these features. Alternative approaches include learned absolute positional embeddings (as used in BERT), which can better adapt to language-specific patterns but may struggle with extrapolation, and relative positional encoding schemes (as in Transformer-XL and T5) that directly model position relationships rather than absolute positions. Recent innovations like RoPE (Rotary Position Embedding) and ALiBi (Attention with Linear Biases) offer different trade-offs between computational efficiency and modeling capacity. The integration of positional information—whether through fixed mathematical functions or learned parameters—enables transformers to reason about sequence order despite their inherently parallel computation, combining the benefits of position-aware processing with the computational efficiency of attention mechanisms. This carefully designed architectural feature exemplifies the thoughtful engineering decisions that enable transformers to achieve their remarkable performance across diverse sequence modeling tasks.',
       status: 'locked'
     },
-    position: { x: 0, y: 300 }
+    position: { x: -100, y: 300 }
   },
   {
     id: 'residual_norm',
@@ -305,10 +337,10 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'Residual connections and layer normalization form critical architectural elements that enable stable training of deep transformer networks. Residual connections, expressed as $x + Sublayer(x)$, create direct paths for gradient flow by adding each sublayer\'s input to its output. This elegant solution mitigates the vanishing gradient problem that traditionally limited neural network depth, allowing information and gradients to bypass sublayers when necessary. By providing shortcut connections through the network, residuals enable significantly deeper architectures while maintaining trainability, which is essential for capturing the hierarchical patterns present in language data. Layer normalization complements residual connections by stabilizing the statistical distribution of activations. Applied as $LayerNorm(x) = \\gamma \\cdot \\frac{x - \\mu}{\\sigma + \\epsilon} + \\beta$, where $\\mu$ and $\\sigma$ are the mean and standard deviation computed across the feature dimension for each token independently, normalization reduces internal covariate shift during training. Unlike batch normalization, layer normalization operates independently for each sequence position, making it particularly suitable for variable-length sequences and small batch sizes often used with transformers. The transformer\'s characteristic processing pattern of sublayer followed by Add & Norm (i.e., $LayerNorm(x + Sublayer(x))$) creates a rhythmic, regularized information flow that balances feature transformation with representational stability. This carefully engineered combination of techniques enables transformers to scale to hundreds of layers in modern architectures while maintaining effective training dynamics, contributing significantly to their unprecedented performance on language tasks. The success of these normalization strategies has inspired ongoing research into alternatives like RMSNorm (Root Mean Square Normalization) and Pre-LN (Pre-Layer Normalization) arrangements that further improve training stability and performance.',
       status: 'locked'
     },
-    position: { x: 200, y: 300 }
+    position: { x: 100, y: 300 }
   },
   
-  // Keeping Sections 6 and 7 (Removing Training and Inference as nodes but keeping their children)
+  // Training and Applications
   {
     id: 'pretrain_objectives',
     type: 'mindmap',
@@ -317,7 +349,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'Pretraining objectives define the self-supervised learning tasks that enable transformers to develop sophisticated language understanding from raw text data before fine-tuning on downstream applications. Masked Language Modeling (MLM), pioneered by BERT, randomly masks approximately 15% of input tokens and trains the model to reconstruct them based on surrounding context. This bidirectional prediction task forces the model to develop rich contextual representations capturing syntactic and semantic patterns. Causal Language Modeling (CLM), used by GPT models, adopts a left-to-right autoregressive approach where the model predicts each token based solely on previous tokens, optimizing for the probability distribution $P(x_t | x_{<t})$. This unidirectional objective naturally aligns with text generation tasks but can limit bidirectional understanding. Sequence-to-Sequence objectives, employed by T5 and BART, corrupt input sequences (through masking, deletion, rotation, or other transformations) and train encoder-decoder models to reconstruct the original text, combining aspects of both MLM and CLM. More recent objectives include contrastive learning (as in CLIP, SimCSE), where models learn to identify related versus unrelated content; replaced token detection (as in ELECTRA), where models learn to distinguish original tokens from plausible replacements; and span prediction objectives like those in SpanBERT, which mask contiguous spans rather than individual tokens. The choice of pretraining objective fundamentally shapes a model\'s capabilities—MLM excels at understanding tasks, CLM at generation tasks, and seq2seq at translation-like transformations. Modern approaches increasingly combine multiple objectives during pretraining to develop more versatile representations, while scaling laws research demonstrates that larger models trained on more data with these objectives continue to improve in a predictable manner, contributing to the remarkable advances in transformer-based language models in recent years.',
       status: 'locked'
     },
-    position: { x: -400, y: 300 }
+    position: { x: 50, y: 300 }
   },
   {
     id: 'optimization',
@@ -327,7 +359,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'Transformer optimization employs specialized techniques to navigate the challenging loss landscapes of these deep, parameter-rich architectures. The Adam optimizer (Adaptive Moment Estimation) serves as the standard choice for transformer training, combining the benefits of momentum and RMSProp by maintaining both first-moment (mean) and second-moment (uncentered variance) estimates of gradients. This adaptive learning rate approach significantly accelerates convergence compared to standard stochastic gradient descent, especially for the sparse gradients common in language tasks. Equally critical is the learning rate schedule, typically following a warmup phase where the rate linearly increases for several thousand steps, followed by a decay phase using inverse square root, linear, or cosine schedules. This warmup period prevents early instability in the Adam optimizer\'s second-moment estimates, while the subsequent decay ensures convergence to high-quality solutions. Regularization techniques—including dropout applied to attention weights, hidden states, and embeddings (typically at rates of 0.1-0.3); weight decay (often at 0.01); and sometimes label smoothing for classification outputs—help prevent overfitting despite the models\' massive capacity. For extremely large models, more advanced approaches become necessary: gradient accumulation enables effective training with limited hardware by accumulating gradients across multiple forward passes before updating; mixed-precision training accelerates computation by using lower-precision formats (e.g., FP16) where appropriate while maintaining stability; techniques like gradient checkpointing trade computation for reduced memory usage by recomputing certain activations during backpropagation rather than storing them; and distributed training strategies like data parallelism, pipeline parallelism, and tensor parallelism enable scaling to models with billions or trillions of parameters. These carefully engineered optimization strategies enable transformers to learn effectively despite their unprecedented scale, contributing significantly to their remarkable performance across language tasks.',
       status: 'locked'
     },
-    position: { x: -300, y: 300 }
+    position: { x: 200, y: 200 }
   },
   {
     id: 'generative_tasks',
@@ -337,7 +369,7 @@ export const transformerNodes: Node<NodeData>[] = [
       content: 'Transformer models excel at generative tasks through sophisticated decoding strategies that convert their probabilistic outputs into coherent text sequences. Greedy decoding simply selects the highest-probability token at each step ($argmax_w P(w|context)$), producing deterministic but often repetitive outputs. Beam search, a more advanced approach, maintains a beam of $k$ most probable partial sequences (typically $k=4$ to $10$), expanding each with all possible next tokens and keeping only the $k$ most probable extended sequences. This wider exploration of the probability space often produces higher-quality outputs at the cost of increased computation. Temperature sampling introduces controlled randomness by adjusting the sharpness of the output distribution according to a temperature parameter $T$: $P(w|context) \\propto \\exp(logits_w/T)$. Lower values (e.g., $T=0.7$) make the distribution more peaked around high-probability tokens, while higher values (e.g., $T=1.2$) flatten it for more diversity. Top-$k$ sampling restricts selection to only the $k$ highest-probability tokens before normalization, preventing the model from choosing very low-probability outputs. Nucleus (top-$p$) sampling, a dynamic variant, selects from the smallest set of tokens whose cumulative probability exceeds threshold $p$ (typically 0.9-0.95), adapting the candidate pool size based on the certainty of the model\'s predictions. Modern systems often combine these techniques with additional constraints like repetition penalties that reduce the probability of recently generated n-grams, minimum length requirements, or task-specific filters. The development of increasingly sophisticated decoding strategies has dramatically improved transformer-generated text quality, enabling applications from summarization and translation to creative writing and dialogue systems. These generation methods effectively translate the rich contextual knowledge captured during pretraining into coherent, fluent, and increasingly reliable text outputs across diverse applications.',
       status: 'locked'
     },
-    position: { x: 400, y: 300 }
+    position: { x: 200, y: 300 }
   },
   {
     id: 'classification_tasks',
@@ -352,47 +384,77 @@ export const transformerNodes: Node<NodeData>[] = [
 ];
 
 export const transformerEdges: Edge[] = [
-  // Root connections
-  { id: 'e-root-input', source: 'root', target: 'input_processing', type: 'mindmap' },
-  { id: 'e-root-encoder', source: 'root', target: 'encoder', type: 'mindmap' },
-  { id: 'e-root-decoder', source: 'root', target: 'decoder', type: 'mindmap' },
-  { id: 'e-root-output', source: 'root', target: 'output', type: 'mindmap' },
-  { id: 'e-root-att_mech', source: 'root', target: 'attention_mechanism', type: 'mindmap' },
-  { id: 'e-root-pos_enc', source: 'root', target: 'pos_encoding_key', type: 'mindmap' },
-  { id: 'e-root-res_norm', source: 'root', target: 'residual_norm', type: 'mindmap' },
-  { id: 'e-root-pretrain', source: 'root', target: 'pretrain_objectives', type: 'mindmap' },
-  { id: 'e-root-opt', source: 'root', target: 'optimization', type: 'mindmap' },
-  { id: 'e-root-gen', source: 'root', target: 'generative_tasks', type: 'mindmap' },
-  { id: 'e-root-class', source: 'root', target: 'classification_tasks', type: 'mindmap' },
+  // Root connections - reducing to 4 main categories
+  { id: 'e-root-architecture', source: 'root', target: 'architecture', type: 'mindmap' },
+  { id: 'e-root-processing', source: 'root', target: 'processing', type: 'mindmap' },
+  { id: 'e-root-training', source: 'root', target: 'training', type: 'mindmap' },
+  { id: 'e-root-applications', source: 'root', target: 'applications', type: 'mindmap' },
   
-  // Input Processing connections
+  // Architecture connections
+  { id: 'e-architecture-input', source: 'architecture', target: 'input_processing', type: 'mindmap' },
+  { id: 'e-architecture-encoder', source: 'architecture', target: 'encoder', type: 'mindmap' },
+  { id: 'e-architecture-decoder', source: 'architecture', target: 'decoder', type: 'mindmap' },
+  { id: 'e-architecture-output', source: 'architecture', target: 'output', type: 'mindmap' },
+  
+  // Processing connections (key mechanisms of transformer)
+  { id: 'e-processing-attention', source: 'processing', target: 'attention_mechanism', type: 'mindmap' },
+  { id: 'e-processing-pos', source: 'processing', target: 'pos_encoding_key', type: 'mindmap' },
+  { id: 'e-processing-residual', source: 'processing', target: 'residual_norm', type: 'mindmap' },
+  
+  // Connect processing mechanisms to architecture components
+  { id: 'e-attention-encoder', source: 'attention_mechanism', target: 'encoder', type: 'mindmap' },
+  { id: 'e-attention-decoder', source: 'attention_mechanism', target: 'decoder', type: 'mindmap' },
+  { id: 'e-pos-input', source: 'pos_encoding_key', target: 'input_processing', type: 'mindmap' },
+  { id: 'e-residual-encoder', source: 'residual_norm', target: 'encoder_layer', type: 'mindmap' },
+  { id: 'e-residual-decoder', source: 'residual_norm', target: 'decoder_layer', type: 'mindmap' },
+  
+  // Training connections
+  { id: 'e-training-pretrain', source: 'training', target: 'pretrain_objectives', type: 'mindmap' },
+  { id: 'e-training-opt', source: 'training', target: 'optimization', type: 'mindmap' },
+  
+  // Application connections
+  { id: 'e-applications-gen', source: 'applications', target: 'generative_tasks', type: 'mindmap' },
+  { id: 'e-applications-class', source: 'applications', target: 'classification_tasks', type: 'mindmap' },
+  { id: 'e-applications-task', source: 'applications', target: 'task_heads', type: 'mindmap' },
+  
+  // Input Processing connections - kept the same
   { id: 'e-input-text', source: 'input_processing', target: 'text_input', type: 'mindmap' },
   { id: 'e-input-token', source: 'input_processing', target: 'tokenization', type: 'mindmap' },
   { id: 'e-input-embed', source: 'input_processing', target: 'embedding_layer', type: 'mindmap' },
   { id: 'e-input-pos', source: 'input_processing', target: 'positional_encoding', type: 'mindmap' },
+  
+  // Tokenization connection - limited to one child
   { id: 'e-token-subword', source: 'tokenization', target: 'subword_tokenization', type: 'mindmap' },
+  
+  // Embedding connection - limited to one child
   { id: 'e-embed-learn', source: 'embedding_layer', target: 'learnable_embeddings', type: 'mindmap' },
+  
+  // Positional encoding connections - limited to two children
   { id: 'e-pos-sine', source: 'positional_encoding', target: 'sine_cosine', type: 'mindmap' },
   { id: 'e-pos-alt', source: 'positional_encoding', target: 'pos_alternatives', type: 'mindmap' },
   
-  // Encoder connections
+  // Encoder connections - kept the same
   { id: 'e-encoder-layer', source: 'encoder', target: 'encoder_layer', type: 'mindmap' },
+  
+  // Encoder layer connections - limited to 3 main components
   { id: 'e-enclayer-mha', source: 'encoder_layer', target: 'multi_head_attention', type: 'mindmap' },
-  { id: 'e-enclayer-an1', source: 'encoder_layer', target: 'add_norm_1', type: 'mindmap' },
   { id: 'e-enclayer-ffn', source: 'encoder_layer', target: 'feed_forward', type: 'mindmap' },
-  { id: 'e-enclayer-an2', source: 'encoder_layer', target: 'add_norm_2', type: 'mindmap' },
+  { id: 'e-enclayer-an', source: 'encoder_layer', target: 'add_norm_1', type: 'mindmap' },
+  
+  // Multi-head attention connections - limited to two children
   { id: 'e-mha-sah', source: 'multi_head_attention', target: 'single_attention_head', type: 'mindmap' },
   { id: 'e-mha-mhm', source: 'multi_head_attention', target: 'multi_head_mechanism', type: 'mindmap' },
   
   // Decoder connections
   { id: 'e-decoder-layer', source: 'decoder', target: 'decoder_layer', type: 'mindmap' },
+  
+  // Decoder layer connections - limited to two key components
   { id: 'e-declayer-mask', source: 'decoder_layer', target: 'masked_attention', type: 'mindmap' },
   { id: 'e-declayer-cross', source: 'decoder_layer', target: 'cross_attention', type: 'mindmap' },
   
-  // Output connections
+  // Output connections - limited to two key components
   { id: 'e-output-linear', source: 'output', target: 'linear_layer', type: 'mindmap' },
-  { id: 'e-output-softmax', source: 'output', target: 'softmax', type: 'mindmap' },
-  { id: 'e-output-task', source: 'output', target: 'task_heads', type: 'mindmap' }
+  { id: 'e-output-softmax', source: 'output', target: 'softmax', type: 'mindmap' }
 ];
 
 export const transformerMindMap = {

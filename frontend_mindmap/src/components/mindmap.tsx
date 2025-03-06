@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   useNodesState,
@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Question, generateQuestions, submitAnswer, getProgress, createMindMap, initializeSession, updateNodeStatus } from '@/lib/api';
 import { generateSessionId } from '@/lib/utils';
 import { transformerMindMap } from '@/data/transformer-mindmap';
+import PathNavigator from '@/components/path-navigator';
 
 interface MindMapApiResponse {
   nodes: Array<{
@@ -72,6 +73,7 @@ const MindMap: React.FC = () => {
   const [fullEdges, setFullEdges] = useState<any[]>([]);
   const [lastClickedNode, setLastClickedNode] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [nodePath, setNodePath] = useState<Array<{id: string, label: string}>>([]);
   
   // Initialize session when component mounts
   useEffect(() => {
@@ -79,6 +81,44 @@ const MindMap: React.FC = () => {
       setSessionId(generateSessionId());
     }
   }, [sessionId]);
+
+  // Function to build the path from root to the current node
+  const buildNodePath = useCallback((nodeId: string) => {
+    if (!fullNodes.length || !fullEdges.length) return [];
+    
+    const path: Array<{id: string, label: string}> = [];
+    let currentNodeId = nodeId;
+    
+    // Add the current node to the path (unless it's the root, which we'll add last)
+    if (nodeId !== 'root') {
+      const currentNode = fullNodes.find(n => n.id === currentNodeId);
+      if (currentNode) {
+        path.unshift({ id: currentNodeId, label: currentNode.data.label });
+      }
+    }
+    
+    // Traverse up to find all ancestors
+    while (currentNodeId !== 'root') {
+      const parentEdge = fullEdges.find(edge => edge.target === currentNodeId);
+      if (!parentEdge) break;
+      
+      const parentNode = fullNodes.find(n => n.id === parentEdge.source);
+      if (!parentNode) break;
+      
+      currentNodeId = parentEdge.source;
+      path.unshift({ id: currentNodeId, label: parentNode.data.label });
+    }
+    
+    // Always make sure root is at the beginning if it's not already there
+    if (path.length > 0 && path[0].id !== 'root') {
+      const rootNode = fullNodes.find(n => n.id === 'root');
+      if (rootNode) {
+        path.unshift({ id: 'root', label: rootNode.data.label });
+      }
+    }
+    
+    return path;
+  }, [fullNodes, fullEdges]);
 
   // Function to focus on a specific node and show its direct children + parent
   const focusOnNode = useCallback((nodeId: string) => {
@@ -92,6 +132,10 @@ const MindMap: React.FC = () => {
     console.log(`Focusing on node: ${nodeId}`);
     
     setFocusedNode(nodeId);
+    
+    // Update the node path
+    const path = buildNodePath(nodeId);
+    setNodePath(path);
     
     // Find all direct children of the focused node
     const directChildren = fullEdges
@@ -398,8 +442,8 @@ const MindMap: React.FC = () => {
     }
   }, [fullNodes, focusOnNode, handleNodeClick, setSelectedNode]);
 
-  // Create nodeTypes with the view handler
-  const nodeTypesWithHandlers = useCallback(() => ({
+  // Create nodeTypes with the view handler - memoized to prevent recreation on each render
+  const nodeTypesWithHandlers = useMemo(() => ({
     mindmap: (props: any) => (
       <MindMapNode
         {...props}
@@ -678,7 +722,7 @@ const MindMap: React.FC = () => {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypesWithHandlers()}
+        nodeTypes={nodeTypesWithHandlers}
         edgeTypes={edgeTypes}
         onNodeClick={handleNodeClick}
         proOptions={{ hideAttribution: true }}
@@ -708,6 +752,11 @@ const MindMap: React.FC = () => {
           onSubmitAnswer={handleSubmitAnswer}
         />
       )}
+      
+      {/* Path Navigator in upper right */}
+      <div className="absolute top-4 right-4 z-10">
+        <PathNavigator path={nodePath} onNavigate={focusOnNode} />
+      </div>
       
       <div className="absolute top-4 left-4 z-10 flex gap-2">
         <Button 
