@@ -1,32 +1,32 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { ApiService, 
   NodeData, 
   EdgeData, 
   QuestionData,
   NodeProgressData
 } from '../services/api';
+import { defaultTransformerMindMap } from '../data/defaultMindMap';
 
 // Define context type
 interface LearningContextType {
   sessionId: string | null;
-  nodes: any[]; // Using any[] to match React Flow node type
-  edges: any[]; // Using any[] to match React Flow edge type
+  nodes: NodeData[];
+  edges: EdgeData[];
   nodeProgress: Record<string, NodeProgressData>;
   isLoading: boolean;
   error: string | null;
   
   // Actions
   initializeSession: () => Promise<void>;
-  generateQuestions: (nodeId: string) => Promise<QuestionData[] | null>;
-  answerQuestion: (nodeId: string, questionId: string, answer: string) => Promise<boolean>;
-  checkNodeUnlockable: (nodeId: string) => Promise<boolean>;
-  updateNodeStatus: (nodeId: string, status: 'not_started' | 'in_progress' | 'completed' | 'locked') => Promise<boolean>;
-  getNodeData: (nodeId: string) => any | null; // Using any to match React Flow node type
+  generateQuestions: () => Promise<QuestionData[] | null>;
+  answerQuestion: () => Promise<boolean>;
+  checkNodeUnlockable: () => Promise<boolean>;
+  updateNodeStatus: () => Promise<boolean>;
+  getNodeData: (nodeId: string) => NodeData | null;
   refreshProgress: () => Promise<void>;
-  setMindMap: (newNodes: any[], newEdges: any[]) => void;
+  setMindMap: (newNodes: NodeData[], newEdges: EdgeData[]) => void;
 }
 
 // Create context with default values
@@ -48,88 +48,11 @@ const LearningContext = createContext<LearningContextType>({
   setMindMap: () => {},
 });
 
-// Define default transformer mindmap data
-const defaultTransformerMindMap = {
-  nodes: [
-    {
-      id: 'transformer',
-      type: 'mindmap',
-      data: { 
-        label: 'Transformer Architecture', 
-        content: 'A neural network architecture that uses self-attention to process sequential data. Revolutionized NLP and beyond.'
-      },
-      position: { x: 0, y: 0 },
-    },
-    {
-      id: 'encoder',
-      type: 'mindmap',
-      data: { 
-        label: 'Encoder', 
-        content: 'Processes the input sequence using self-attention and feed-forward layers. Creates contextual representations of input.'
-      },
-      position: { x: -150, y: -200 },
-    },
-    {
-      id: 'self-attention',
-      type: 'mindmap',
-      data: { 
-        label: 'Self-Attention', 
-        content: 'Allows each token to attend to all other tokens. Uses queries, keys, and values to compute attention scores.'
-      },
-      position: { x: -150, y: -350 },
-    },
-    {
-      id: 'feed-forward',
-      type: 'mindmap',
-      data: { 
-        label: 'Feed-Forward Network', 
-        content: 'Applied position-wise (same network, different inputs per token). Typically has two linear layers with a ReLU activation in between.'
-      },
-      position: { x: -150, y: -50 },
-    },
-    {
-      id: 'decoder',
-      type: 'mindmap',
-      data: { 
-        label: 'Decoder', 
-        content: 'Generates output sequence autoregressively, attending to both itself and encoder output. Also uses N layers.'
-      },
-      position: { x: 150, y: -200 },
-    },
-    {
-      id: 'masked-attention',
-      type: 'mindmap',
-      data: { 
-        label: 'Masked Self-Attention', 
-        content: 'Same as encoder\'s self-attention but masked to prevent attending to future tokens (causal attention).'
-      },
-      position: { x: 150, y: -350 },
-    },
-    {
-      id: 'cross-attention',
-      type: 'mindmap',
-      data: { 
-        label: 'Cross-Attention', 
-        content: 'Attends to encoder output. Q comes from decoder, K and V from encoder, allowing the decoder to focus on relevant parts of the input.'
-      },
-      position: { x: 150, y: -50 },
-    },
-  ],
-  edges: [
-    { id: 'e1', source: 'transformer', target: 'encoder', type: 'mindmap' },
-    { id: 'e2', source: 'transformer', target: 'decoder', type: 'mindmap' },
-    { id: 'e3', source: 'encoder', target: 'self-attention', type: 'mindmap' },
-    { id: 'e4', source: 'encoder', target: 'feed-forward', type: 'mindmap' },
-    { id: 'e5', source: 'decoder', target: 'masked-attention', type: 'mindmap' },
-    { id: 'e6', source: 'decoder', target: 'cross-attention', type: 'mindmap' },
-  ]
-};
-
 // Provider component
 export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [nodes, setNodes] = useState<any[]>(defaultTransformerMindMap.nodes);
-  const [edges, setEdges] = useState<any[]>(defaultTransformerMindMap.edges);
+  const [nodes, setNodes] = useState<NodeData[]>(defaultTransformerMindMap.nodes);
+  const [edges, setEdges] = useState<EdgeData[]>(defaultTransformerMindMap.edges);
   const [nodeProgress, setNodeProgress] = useState<Record<string, NodeProgressData>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -179,7 +102,7 @@ export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) 
       // Get initial node progress if there's a session ID
       if (sid) {
         try {
-          const progress = await ApiService.getProgress(sid);
+          const progress = await ApiService.getProgress();
           setNodeProgress(progress || {});
         } catch (progressError) {
           console.error("Failed to load progress", progressError);
@@ -197,7 +120,7 @@ export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) 
   };
   
   // Generate questions for a node
-  const generateQuestions = async (nodeId: string): Promise<QuestionData[] | null> => {
+  const generateQuestions = async () => {
     if (!sessionId) {
       setError("No active session. Please reload the page.");
       return null;
@@ -207,52 +130,19 @@ export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) 
     setError(null);
     
     try {
-      // Get the node data
-      const nodeData = nodes.find(n => n.id === nodeId);
-      
-      if (!nodeData) {
-        throw new Error(`Node ${nodeId} not found`);
-      }
-      
-      // Update the progress to show in_progress
-      const updatedProgress = { 
-        ...nodeProgress,
-        [nodeId]: { 
-          ...nodeProgress[nodeId] || {},
-          status: 'in_progress' as const,
-          unlockable: true
-        } 
-      };
-      setNodeProgress(updatedProgress);
-      
-      // Try to update the status on the server
-      await ApiService.updateNodeStatus(sessionId, nodeId, 'in_progress');
-      
-      // Generate questions
-      const questions = await ApiService.generateQuestions(sessionId, nodeId);
-      
-      // Update the node progress
-      const newProgress = {
-        ...updatedProgress,
-        [nodeId]: {
-          ...updatedProgress[nodeId],
-          questions: questions || []
-        }
-      };
-      setNodeProgress(newProgress);
-      
+      const questions = await ApiService.generateQuestions();
       setIsLoading(false);
       return questions;
     } catch (err) {
-      console.error(`Failed to generate questions for node ${nodeId}`, err);
+      console.error(`Failed to generate questions`, err);
       setError(`Failed to generate questions: ${err instanceof Error ? err.message : String(err)}`);
       setIsLoading(false);
       return null;
     }
   };
   
-  // Answer a question
-  const answerQuestion = async (nodeId: string, questionId: string, answer: string): Promise<boolean> => {
+  // Submit an answer
+  const answerQuestion = async () => {
     if (!sessionId) {
       setError("No active session. Please reload the page.");
       return false;
@@ -262,36 +152,11 @@ export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) 
     setError(null);
     
     try {
-      const result = await ApiService.submitAnswer(sessionId, questionId, answer);
-      
-      // Update the question in the node progress
-      if (nodeProgress[nodeId]) {
-        const updatedQuestions = nodeProgress[nodeId].questions.map((q: QuestionData) => {
-          if (q.id === questionId) {
-            return {
-              ...q,
-              status: result.correct ? 'passed' : 'failed',
-              feedback: result.feedback,
-              last_answer: answer,
-              attempts: (q.attempts || 0) + 1
-            } as QuestionData;
-          }
-          return q;
-        });
-        
-        setNodeProgress({
-          ...nodeProgress,
-          [nodeId]: {
-            ...nodeProgress[nodeId],
-            questions: updatedQuestions
-          }
-        });
-      }
-      
+      const result = await ApiService.submitAnswer();
       setIsLoading(false);
       return result.correct;
     } catch (err) {
-      console.error(`Failed to answer question ${questionId}`, err);
+      console.error(`Failed to submit answer`, err);
       setError(`Failed to submit answer: ${err instanceof Error ? err.message : String(err)}`);
       setIsLoading(false);
       return false;
@@ -299,52 +164,15 @@ export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) 
   };
   
   // Check if a node is unlockable
-  const checkNodeUnlockable = async (nodeId: string): Promise<boolean> => {
-    if (!sessionId) {
-      return false;
-    }
-    
-    try {
-      return await ApiService.checkNodeUnlockable(sessionId, nodeId);
-    } catch (err) {
-      console.error(`Failed to check if node ${nodeId} is unlockable`, err);
-      return false;
-    }
+  const checkNodeUnlockable = async () => {
+    if (!sessionId) return false;
+    return await ApiService.checkNodeUnlockable();
   };
   
   // Update node status
-  const updateNodeStatus = async (
-    nodeId: string, 
-    status: 'not_started' | 'in_progress' | 'completed' | 'locked'
-  ): Promise<boolean> => {
-    if (!sessionId) {
-      return false;
-    }
-    
-    try {
-      // Check if we already have this status to avoid unnecessary updates
-      if (nodeProgress[nodeId]?.status === status) {
-        return true; // Already in desired state
-      }
-      
-      const success = await ApiService.updateNodeStatus(sessionId, nodeId, status);
-      
-      if (success) {
-        // Use functional update to avoid race conditions
-        setNodeProgress(prevProgress => ({
-          ...prevProgress,
-          [nodeId]: {
-            ...(prevProgress[nodeId] || { questions: [], unlockable: true }),
-            status
-          }
-        }));
-      }
-      
-      return success;
-    } catch (err) {
-      console.error(`Failed to update node ${nodeId} status to ${status}`, err);
-      return false;
-    }
+  const updateNodeStatus = async () => {
+    if (!sessionId) return false;
+    return await ApiService.updateNodeStatus();
   };
   
   // Get node data
@@ -353,13 +181,11 @@ export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) 
   };
   
   // Refresh progress data
-  const refreshProgress = async (): Promise<void> => {
-    if (!sessionId) {
-      return;
-    }
+  const refreshProgress = async () => {
+    if (!sessionId) return;
     
     try {
-      const progress = await ApiService.getProgress(sessionId);
+      const progress = await ApiService.getProgress();
       setNodeProgress(progress);
     } catch (err) {
       console.error('Failed to refresh progress data', err);
@@ -367,13 +193,13 @@ export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) 
   };
   
   // Set a new mindmap
-  const setMindMap = (newNodes: any[], newEdges: any[]) => {
+  const setMindMap = (newNodes: NodeData[], newEdges: EdgeData[]) => {
     setNodes(newNodes);
     setEdges(newEdges);
     
     // Reset node progress for new nodes
     const initialProgress: Record<string, NodeProgressData> = {};
-    newNodes.forEach(node => {
+    newNodes.forEach((node: NodeData) => {
       initialProgress[node.id] = {
         status: node.id === newNodes[0]?.id ? 'not_started' : 'locked',
         questions: [],
