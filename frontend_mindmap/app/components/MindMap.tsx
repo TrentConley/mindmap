@@ -5,6 +5,7 @@ import {
   Edge,
   Controls, 
   Background, 
+  BackgroundVariant,
   useNodesState, 
   useEdgesState, 
   ConnectionLineType, 
@@ -24,7 +25,7 @@ import MindMapNode from './MindMapNode';
 import MindMapEdge from './MindMapEdge';
 import QuestionPanel from './QuestionPanel';
 import { useLearning } from '../context/LearningContext';
-import { ApiService } from '../services/api';
+import { ApiService, NodeData, EdgeData } from '../services/api';
 
 // Define our node data type
 interface MindMapNodeData extends Record<string, unknown> {
@@ -51,6 +52,87 @@ const defaultEdgeOptions = {
   },
 };
 
+// Function to arrange nodes in a hierarchical layout
+const arrangeNodesHierarchically = (nodes: Node<MindMapNodeData>[], edges: Edge[]) => {
+  // Create a map to store node information
+  interface NodeInfo {
+    node: Node<MindMapNodeData>;
+    level: number;
+    children: NodeInfo[];
+    parents: NodeInfo[];
+  }
+  
+  const nodeMap = new Map<string, NodeInfo>();
+  nodes.forEach(node => {
+    nodeMap.set(node.id, { 
+      node, 
+      level: 0, 
+      children: [], 
+      parents: [] 
+    });
+  });
+  
+  // Create parent-child relationships
+  edges.forEach(edge => {
+    const source = nodeMap.get(edge.source);
+    const target = nodeMap.get(edge.target);
+    
+    if (source && target) {
+      source.children.push(target);
+      target.parents.push(source);
+    }
+  });
+  
+  // Find root nodes (nodes with no parents)
+  const rootNodes = Array.from(nodeMap.values()).filter(info => info.parents.length === 0);
+  
+  // Calculate levels using BFS
+  const queue = [...rootNodes];
+  while (queue.length > 0) {
+    const current = queue.shift() as NodeInfo;
+    
+    // Add children to queue with incremented level
+    current.children.forEach((child: NodeInfo) => {
+      // Only update level if the new level is higher
+      if (child.level <= current.level) {
+        child.level = current.level + 1;
+      }
+      queue.push(child);
+    });
+  }
+  
+  // Group nodes by level
+  const levelGroups = new Map();
+  nodeMap.forEach(info => {
+    if (!levelGroups.has(info.level)) {
+      levelGroups.set(info.level, []);
+    }
+    levelGroups.get(info.level).push(info);
+  });
+  
+  // Position nodes
+  const LEVEL_HEIGHT = 200;
+  const NODE_WIDTH = 250;
+  
+  // For each level
+  Array.from(levelGroups.keys()).sort().forEach(level => {
+    const nodesInLevel = levelGroups.get(level);
+    const levelWidth = nodesInLevel.length * NODE_WIDTH;
+    const startX = -levelWidth / 2;
+    
+    // Position each node in the level
+    nodesInLevel.forEach((nodeInfo: NodeInfo, index: number) => {
+      const x = startX + index * NODE_WIDTH;
+      const y = level * LEVEL_HEIGHT;
+      
+      // Update node position
+      nodeInfo.node.position = { x, y };
+    });
+  });
+  
+  return nodes.map(node => ({ ...node }));
+};
+
 // MindMap component
 export default function MindMap() {
   // Explicitly type the React Flow node and edge states with proper generics
@@ -61,6 +143,7 @@ export default function MindMap() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTopic, setNewTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Get context values and functions
   const learningContext = useLearning();
@@ -71,6 +154,8 @@ export default function MindMap() {
   // Initialize MindMap data on component mount
   useEffect(() => {
     const initializeMindMap = async () => {
+      if (isInitialized) return;
+      
       setIsLoading(true);
       try {
         // Initialize the session
@@ -78,7 +163,7 @@ export default function MindMap() {
         
         // Convert context nodes to React Flow nodes
         if (learningContext.nodes && learningContext.nodes.length > 0) {
-          const flowNodes = learningContext.nodes.map((node: any) => ({
+          const flowNodes = learningContext.nodes.map((node: NodeData) => ({
             id: node.id,
             type: 'mindmap',
             position: node.position || { x: 0, y: 0 },
@@ -89,12 +174,21 @@ export default function MindMap() {
             }
           })) as Node<MindMapNodeData>[];
           
-          setNodes(flowNodes);
+          // Convert context edges to React Flow edges
+          const flowEdges = learningContext.edges.map((edge: EdgeData) => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            type: 'mindmap',
+            animated: true
+          })) as Edge[];
           
-          // Set edges
-          if (learningContext.edges && learningContext.edges.length > 0) {
-            setEdges(learningContext.edges as Edge[]);
-          }
+          // Apply hierarchical layout
+          const arrangedNodes = arrangeNodesHierarchically(flowNodes, flowEdges);
+          
+          setNodes(arrangedNodes);
+          setEdges(flowEdges);
+          setIsInitialized(true);
         }
       } catch (error) {
         console.error('Failed to initialize mind map:', error);
@@ -104,10 +198,12 @@ export default function MindMap() {
     };
     
     initializeMindMap();
-  }, []);
+  }, []); // Empty dependency array since we're using isInitialized flag
   
   // Update nodes when node progress changes
   useEffect(() => {
+    if (!isInitialized) return;
+    
     if (Object.keys(learningContext.nodeProgress).length > 0) {
       // Compare with previous progress state
       const needsUpdate = Object.entries(learningContext.nodeProgress).some(([nodeId, progress]) => {
@@ -130,17 +226,7 @@ export default function MindMap() {
       // Update the ref with current progress
       prevProgressRef.current = learningContext.nodeProgress;
     }
-  }, [learningContext.nodeProgress, setNodes]);
-  
-  // Handle node click
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node.id);
-  }, []);
-  
-  // Close question panel
-  const closeQuestionPanel = useCallback(() => {
-    setSelectedNode(null);
-  }, []);
+  }, [learningContext.nodeProgress, setNodes, isInitialized]);
   
   // Handle connection
   const onConnect: OnConnect = useCallback((params) => {
@@ -157,9 +243,9 @@ export default function MindMap() {
     setEdges((eds) => applyEdgeChanges(changes, eds) as Edge[]);
   }, []);
   
-  const showCreateMindMapModal = () => {
+  const showCreateMindMapModal = useCallback(() => {
     setIsCreateModalOpen(true);
-  };
+  }, []);
   
   const createNewMindMap = async () => {
     setIsGenerating(true);
@@ -185,55 +271,59 @@ export default function MindMap() {
   };
   
   return (
-    <div className="h-full w-full relative" style={{ minHeight: '500px' }}>
+    <div className="w-full h-full bg-[#121212]">
       {isLoading ? (
-        <div className="flex h-full items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+            <p className="mt-4 text-indigo-500">Loading your mind map...</p>
+          </div>
         </div>
       ) : (
-        <div className="h-full w-full border border-gray-200 rounded">
-          <Flow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            defaultEdgeOptions={defaultEdgeOptions}
-            connectionLineType={ConnectionLineType.Straight}
-            onNodeClick={onNodeClick}
-            fitView
-            fitViewOptions={{ padding: 0.2, includeHiddenNodes: true }}
-            minZoom={0.5}
-            maxZoom={2}
-            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-            style={{ background: '#f5f8fa', minHeight: '100%' }}
-            panOnDrag={true}
-            zoomOnScroll={true}
-          >
-            <Controls />
-            <Background color="#aaa" gap={16} />
-            <Panel position="top-right" className="z-10">
-              <div className="bg-white p-2 rounded shadow-lg border border-gray-300">
-                <h3 className="font-bold text-lg text-gray-800">Mind Map Learning</h3>
-                <p className="text-sm text-gray-600">Click on a node to start learning</p>
-                <button 
-                  className="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded text-sm cursor-pointer"
-                  onClick={showCreateMindMapModal}
-                >
-                  Create New Mindmap
-                </button>
-              </div>
-            </Panel>
-          </Flow>
-        </div>
+        <Flow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          defaultEdgeOptions={defaultEdgeOptions}
+          connectionLineType={ConnectionLineType.Straight}
+          className="w-full h-full"
+          fitView
+          attributionPosition="bottom-right"
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={12}
+            size={1}
+            color="rgba(255, 255, 255, 0.1)"
+            style={{ backgroundColor: '#121212' }}
+          />
+          <Controls />
+          <Panel position="top-right" className="bg-[#2a2a2a] p-3 rounded-md shadow-lg">
+            <button 
+              onClick={showCreateMindMapModal}
+              className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              Create New Mind Map
+            </button>
+          </Panel>
+          <Panel position="top-right" className="z-10">
+            <div className="bg-white p-2 rounded shadow-lg border border-gray-300">
+              <h3 className="font-bold text-lg text-gray-800">Mind Map Learning</h3>
+              <p className="text-sm text-gray-600">Click on a node to start learning</p>
+            </div>
+          </Panel>
+        </Flow>
       )}
       
       {selectedNode && (
         <QuestionPanel 
           nodeId={selectedNode} 
-          onClose={closeQuestionPanel}
+          onClose={() => setSelectedNode(null)}
         />
       )}
       

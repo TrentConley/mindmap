@@ -51,20 +51,11 @@ const LearningContext = createContext<LearningContextType>({
 // Provider component
 export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [nodes, setNodes] = useState<NodeData[]>(defaultTransformerMindMap.nodes);
-  const [edges, setEdges] = useState<EdgeData[]>(defaultTransformerMindMap.edges);
+  const [nodes, setNodes] = useState<NodeData[]>([]);
+  const [edges, setEdges] = useState<EdgeData[]>([]);
   const [nodeProgress, setNodeProgress] = useState<Record<string, NodeProgressData>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Load session from localStorage on mount
-  useEffect(() => {
-    const storedSessionId = localStorage.getItem('learningSessionId');
-    if (storedSessionId) {
-      setSessionId(storedSessionId);
-      initializeSession();
-    }
-  }, []);
   
   // Initialize learning session
   const initializeSession = async () => {
@@ -78,46 +69,47 @@ export const LearningProvider: React.FC<{children: ReactNode}> = ({ children }) 
       
       // Get the mind map data
       const mapData = await ApiService.getMindMap();
+      const progressData = await ApiService.getProgress();
       
       // Use default transformer mindmap if no data is available
       if (!mapData.nodes || mapData.nodes.length === 0) {
         setNodes(defaultTransformerMindMap.nodes);
         setEdges(defaultTransformerMindMap.edges);
-        
-        // Initialize node progress for default nodes
-        const initialProgress: Record<string, NodeProgressData> = {};
-        defaultTransformerMindMap.nodes.forEach(node => {
-          initialProgress[node.id] = {
-            status: node.id === 'transformer' ? 'not_started' : 'locked',
-            questions: [],
-            unlockable: node.id === 'transformer' // Only root node is unlockable initially
-          };
-        });
-        setNodeProgress(initialProgress);
       } else {
         setNodes(mapData.nodes);
         setEdges(mapData.edges);
       }
       
-      // Get initial node progress if there's a session ID
-      if (sid) {
-        try {
-          const progress = await ApiService.getProgress();
-          setNodeProgress(progress || {});
-        } catch (progressError) {
-          console.error("Failed to load progress", progressError);
-          // Continue with empty progress
-          setNodeProgress({});
-        }
-      }
+      // Set node progress
+      setNodeProgress(progressData);
       
-      setIsLoading(false);
     } catch (err) {
-      console.error("Failed to initialize session", err);
-      setError("Failed to initialize learning session");
+      console.error('Failed to initialize session:', err);
+      setError(`Failed to initialize session: ${err instanceof Error ? err.message : String(err)}`);
+      
+      // Set default data if initialization fails
+      setNodes(defaultTransformerMindMap.nodes);
+      setEdges(defaultTransformerMindMap.edges);
+      
+      // Initialize node progress for default nodes
+      const initialProgress: Record<string, NodeProgressData> = {};
+      defaultTransformerMindMap.nodes.forEach(node => {
+        initialProgress[node.id] = {
+          status: node.id === 'transformer' ? 'not_started' : 'locked',
+          questions: [],
+          unlockable: node.id === 'transformer' // Only root node is unlockable initially
+        };
+      });
+      setNodeProgress(initialProgress);
+    } finally {
       setIsLoading(false);
     }
   };
+  
+  // Load session and initialize on mount
+  useEffect(() => {
+    initializeSession();
+  }, []);
   
   // Generate questions for a node
   const generateQuestions = async () => {

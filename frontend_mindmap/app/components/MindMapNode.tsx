@@ -26,12 +26,12 @@ const getNodeColor = (label: string): string => {
 
 // Get a lighter version of a color with opacity
 const getLighterColor = (color: string): string => {
-  return `${color}1a`; // 10% opacity version of the color
+  return `${color}30`; // 20% opacity version of the color
 };
 
 // Get a darker version of a color
 const getDarkerColor = (color: string): string => {
-  return `${color}cc`; // 80% opacity version of the color
+  return color; // Return the original color
 };
 
 // MindMapNode component
@@ -57,7 +57,7 @@ function MindMapNode({ data, isConnectable, id }: NodeProps) {
   const statusColors = {
     completed: '#10b981',   // Emerald
     in_progress: '#f97316', // Orange
-    locked: '#94a3b8',      // Slate
+    locked: '#505050',      // Darker gray for locked
     not_started: '#6366f1'  // Indigo
   };
   
@@ -70,7 +70,7 @@ function MindMapNode({ data, isConnectable, id }: NodeProps) {
     if (!id) return;
     setIsLoading(true);
     try {
-      await generateQuestions(id);
+      await generateQuestions();
       setShowQuestions(true);
     } catch (error) {
       console.error('Failed to generate questions:', error);
@@ -83,7 +83,7 @@ function MindMapNode({ data, isConnectable, id }: NodeProps) {
     if (!id || !questionId || !currentAnswer.trim()) return;
     setIsLoading(true);
     try {
-      const result = await answerQuestion(id, questionId, currentAnswer);
+      const result = await answerQuestion();
       if (result) {
         setCurrentAnswer('');
         setActiveQuestionId(null);
@@ -97,7 +97,7 @@ function MindMapNode({ data, isConnectable, id }: NodeProps) {
   
   useEffect(() => {
     if (id && learningStatus === 'locked') {
-      checkNodeUnlockable(id);
+      checkNodeUnlockable();
     }
   }, [id, learningStatus, checkNodeUnlockable]);
 
@@ -106,10 +106,10 @@ function MindMapNode({ data, isConnectable, id }: NodeProps) {
       className={`
         relative rounded-xl transition-all duration-300 
         ${expanded || showQuestions ? 'min-w-[340px]' : 'min-w-[220px]'}
-        ${learningStatus === 'locked' ? 'opacity-60' : 'opacity-100'}
+        ${learningStatus === 'locked' ? 'opacity-75' : 'opacity-100'}
       `}
       style={{ 
-        background: getLighterColor(baseColor),
+        background: baseColor,
         border: `2px solid ${getDarkerColor(baseColor)}`,
         transform: isFocused ? 'scale(1.05)' : 'scale(1)',
         boxShadow: `0 4px 20px ${getLighterColor(baseColor)}`,
@@ -120,7 +120,7 @@ function MindMapNode({ data, isConnectable, id }: NodeProps) {
         type="source"
         position={Position.Bottom}
         className="w-3 h-3 rounded-full border-2 bottom-[-8px]"
-        style={{ background: baseColor, borderColor: getDarkerColor(baseColor) }}
+        style={{ background: '#ffffff', borderColor: getDarkerColor(baseColor) }}
         isConnectable={isConnectable}
       />
       
@@ -128,7 +128,7 @@ function MindMapNode({ data, isConnectable, id }: NodeProps) {
         type="target"
         position={Position.Top}
         className="w-3 h-3 rounded-full border-2 top-[-8px]"
-        style={{ background: baseColor, borderColor: getDarkerColor(baseColor) }}
+        style={{ background: '#ffffff', borderColor: getDarkerColor(baseColor) }}
         isConnectable={isConnectable}
       />
       
@@ -143,8 +143,8 @@ function MindMapNode({ data, isConnectable, id }: NodeProps) {
       >
         <div className="flex items-center justify-between mb-2">
           <h3 
-            className={`font-semibold ${isFocused ? 'text-lg' : 'text-base'}`}
-            style={{ color: getDarkerColor(baseColor) }}
+            className={`font-semibold ${isFocused ? 'text-lg' : 'text-base'} text-white`}
+            style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.3)' }}
           >
             {label}
           </h3>

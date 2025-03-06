@@ -8,8 +8,8 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #121212;
+  --foreground: #ededed;
   height: 100%;
 }
 
@@ -53,7 +53,7 @@ html, body {
 .react-flow {
   height: 100%;
   width: 100%; 
-  background-color: #f8f9fa;
+  background-color: var(--background);
   overflow: hidden;
 }
 
@@ -69,7 +69,7 @@ html, body {
 
 .react-flow__node {
   cursor: pointer;
-  filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.1));
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
 }
 
 .react-flow__handle {
@@ -91,19 +91,29 @@ html, body {
   flex-direction: column;
   padding: 8px;
   border-radius: 5px;
-  background-color: white;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  background-color: #2a2a2a;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   z-index: 5;
 }
 
 .react-flow__controls button {
-  background-color: white;
-  border: 1px solid #ddd;
+  background-color: #3a3a3a;
+  border: 1px solid #555;
   padding: 5px;
   border-radius: 3px;
   margin-bottom: 5px;
+  color: #ededed;
 }
 
 .react-flow__controls button:hover {
-  background-color: #f0f0f0;
+  background-color: #4a4a4a;
+}
+
+.react-flow__background {
+  background-color: rgba(30, 30, 30, 0.4) !important;
+}
+
+.react-flow__edge path {
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 2;
 }
