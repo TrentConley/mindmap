@@ -1,0 +1,10 @@
+fastapi==0.109.2
+uvicorn==0.27.1
+anthropic==0.49.0
+python-dotenv==1.0.0
+pydantic>=2.5.0
+httpx==0.26.0
+python-multipart==0.0.7
+uuid==1.30
+pytest==7.4.3
+coverage==7.3.2 
