@@ -1,0 +1,39 @@
+{
+  "name": "frontend_mindmap",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Mindmap application using React Flow",
+  "dependencies": {
+    "@xyflow/react": "^12.0.0",
+    "axios": "^1.6.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "katex": "^0.16.0",
+    "lucide-react": "^0.363.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-katex": "^3.0.1",
+    "prop-types": "^15.8.1",
+    "tailwind-merge": "^2.2.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.2.2",
+    "vite": "^6.2.0"
+  }
+}
