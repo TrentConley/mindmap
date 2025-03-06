@@ -67,9 +67,16 @@ const MindMapNode = memo(({
       return (
         <>
           <div className="p-3">
-            <p className="text-sm">{truncateText(data.content || '', 80)}</p>
+            <div className="flex justify-center mb-2">
+              <div className="bg-blue-100 rounded-full p-1 border border-blue-300">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-sm text-center">{truncateText(data.content || '', 80)}</p>
             <div className="text-center mt-2 text-blue-600 text-sm font-semibold">
-              ↑ Click to go back to parent
+              Click to go back to parent
             </div>
           </div>
         </>

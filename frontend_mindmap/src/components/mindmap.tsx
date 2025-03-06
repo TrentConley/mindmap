@@ -165,26 +165,84 @@ const MindMap: React.FC = () => {
       const childPositions: Record<string, {x: number, y: number}> = {};
       
       if (directChildren.length > 0) {
-        // Distribute children in a semi-circle below the focused node
-        const radius = 250; // Distance from focused node
-        const startAngle = -Math.PI / 2 - Math.PI / 4; // Start from -135 degrees
-        const endAngle = -Math.PI / 2 + Math.PI / 4; // End at -45 degrees
-        
-        // Calculate angle step based on number of children
-        const angleStep = directChildren.length <= 1 
-          ? 0 
-          : (endAngle - startAngle) / (directChildren.length - 1);
-        
-        directChildren.forEach((childId, index) => {
-          const angle = directChildren.length <= 1 
-            ? -Math.PI / 2 // Single child directly below
-            : startAngle + angleStep * index;
-          
-          childPositions[childId] = {
-            x: centerPosition.x + radius * Math.cos(angle),
-            y: centerPosition.y + radius * Math.sin(angle)
+        // Calculate optimal layout based on number of children
+        if (directChildren.length === 1) {
+          // Single child - place directly below
+          childPositions[directChildren[0]] = {
+            x: 0,
+            y: 300
           };
-        });
+        } else if (directChildren.length <= 3) {
+          // 2-3 children - arrange horizontally with adequate spacing
+          const width = 300; // Width between each node
+          const startX = -((directChildren.length - 1) * width) / 2;
+          
+          directChildren.forEach((childId, index) => {
+            childPositions[childId] = {
+              x: startX + index * width,
+              y: 250
+            };
+          });
+        } else if (directChildren.length <= 6) {
+          // 4-6 children - arrange in two rows
+          const colSpacing = 320;
+          const rowSpacing = 250;
+          
+          // Top row has ceiling(n/2) nodes, bottom row has floor(n/2) nodes
+          const topRowCount = Math.ceil(directChildren.length / 2);
+          const bottomRowCount = Math.floor(directChildren.length / 2);
+          
+          // Center both rows
+          const topRowWidth = (topRowCount - 1) * colSpacing;
+          const bottomRowWidth = (bottomRowCount - 1) * colSpacing;
+          
+          const topRowStartX = -topRowWidth / 2;
+          const bottomRowStartX = -bottomRowWidth / 2;
+          
+          directChildren.forEach((childId, index) => {
+            if (index < topRowCount) {
+              // Top row
+              childPositions[childId] = {
+                x: topRowStartX + index * colSpacing,
+                y: 230
+              };
+            } else {
+              // Bottom row
+              const bottomIndex = index - topRowCount;
+              childPositions[childId] = {
+                x: bottomRowStartX + bottomIndex * colSpacing,
+                y: 230 + rowSpacing
+              };
+            }
+          });
+        } else {
+          // 7+ children - use grid layout with max 3 per row
+          const maxPerRow = 3;
+          const colSpacing = 320;
+          const rowSpacing = 250;
+          
+          // Calculate number of rows
+          const numRows = Math.ceil(directChildren.length / maxPerRow);
+          
+          directChildren.forEach((childId, index) => {
+            const row = Math.floor(index / maxPerRow);
+            const col = index % maxPerRow;
+            
+            // For each row, calculate how many nodes it has
+            const nodesInThisRow = (row === numRows - 1 && directChildren.length % maxPerRow !== 0)
+              ? (directChildren.length % maxPerRow)
+              : maxPerRow;
+            
+            // Center this row horizontally
+            const rowWidth = (nodesInThisRow - 1) * colSpacing;
+            const startX = -rowWidth / 2;
+            
+            childPositions[childId] = {
+              x: startX + col * colSpacing,
+              y: 230 + row * rowSpacing
+            };
+          });
+        }
       }
       
       // Position parent node above focused node if it exists
