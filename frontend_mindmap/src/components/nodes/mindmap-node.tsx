@@ -16,6 +16,7 @@ interface MindMapNodeProps extends NodeProps {
   isSelectable?: boolean;
   onUnlock?: (nodeId: string) => void;
   onView?: (nodeId: string) => void;
+  onQuiz?: (nodeId: string) => void;
   isLocked?: boolean;
   data: {
     label: string;
@@ -23,6 +24,7 @@ interface MindMapNodeProps extends NodeProps {
     status?: string;
     isParent?: boolean;
     onView?: (nodeId: string) => void;
+    onQuiz?: (nodeId: string) => void;
   };
 }
 
@@ -32,6 +34,7 @@ const MindMapNode = memo(({
   isSelectable = true,
   onUnlock,
   onView,
+  onQuiz,
   isLocked = false
 }: MindMapNodeProps) => {
   const [expanded, setExpanded] = useState(false);
@@ -58,6 +61,19 @@ const MindMapNode = memo(({
       viewHandler(nodeId);
     } else {
       console.warn('No view handler available for node:', nodeId);
+    }
+  };
+  
+  const handleQuiz = (e: React.MouseEvent) => {
+    console.log('handleQuiz called for node:', nodeId);
+    e.stopPropagation();
+    // Try to get onQuiz from props first, then from data
+    const quizHandler = onQuiz || (data && data.onQuiz);
+    if (quizHandler && nodeId) {
+      console.log('Calling quiz handler for node:', nodeId);
+      quizHandler(nodeId);
+    } else {
+      console.warn('No quiz handler available for node:', nodeId);
     }
   };
 
@@ -107,12 +123,14 @@ const MindMapNode = memo(({
     // Regular node content
     return (
       <>
-        <div className="p-3 flex-grow overflow-auto">
+        <div className="p-3 flex-grow">
           {expanded 
-            ? <div className="max-h-[290px] overflow-y-auto scrollbar-hide pr-1">
-                <LatexContent content={data && typeof data.content === 'string' ? data.content : ''} />
+            ? <div className="max-h-[290px] overflow-y-auto scrollbar-always-visible pr-1 node-content-scroll">
+                <LatexContent content={data && typeof data.content === 'string' ? data.content : ''} scrollable={true} />
               </div>
-            : <p className="text-sm">{truncateText(data && typeof data.content === 'string' ? data.content : '', 180)}</p>
+            : <div className="overflow-y-auto max-h-[80px] scrollbar-always-visible node-content-scroll">
+                {truncateText(data && typeof data.content === 'string' ? data.content : '', 180)}
+              </div>
           }
         </div>
 
@@ -125,14 +143,24 @@ const MindMapNode = memo(({
             {expanded ? 'Collapse' : 'Expand'}
           </Button>
           
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleView}
-          >
-            <Eye className="h-4 w-4 mr-1" />
-            View
-          </Button>
+          <div className="flex gap-1">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleView}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleQuiz}
+              className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200"
+            >
+              Quiz
+            </Button>
+          </div>
         </div>
       </>
     );

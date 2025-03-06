@@ -9,7 +9,8 @@ import {
   Background,
   BackgroundVariant,
   MiniMap,
-  ReactFlowProvider
+  ReactFlowProvider,
+  Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -17,6 +18,7 @@ import MindMapNode from '@/components/nodes/mindmap-node';
 import MindMapEdge from '@/components/edges/mindmap-edge';
 import NodeDetailModal from '@/components/node-detail-modal';
 import TopicSelector from '@/components/topic-selector';
+import QuizModal from '@/components/quiz-modal';
 import { Button } from '@/components/ui/button';
 import { Question, generateQuestions, submitAnswer, getProgress, createMindMap, initializeSession, updateNodeStatus } from '@/lib/api';
 import { generateSessionId } from '@/lib/utils';
@@ -68,12 +70,14 @@ const MindMap: React.FC = () => {
   const [focusedNode, setFocusedNode] = useState<string | null>(null);
   const [nodeQuestions, setNodeQuestions] = useState<Question[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [fullNodes, setFullNodes] = useState<any[]>([]);
   const [fullEdges, setFullEdges] = useState<any[]>([]);
   const [lastClickedNode, setLastClickedNode] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState<number>(0);
   const [nodePath, setNodePath] = useState<Array<{id: string, label: string}>>([]);
+  const [quizLoading, setQuizLoading] = useState(false);
   
   // Initialize session when component mounts
   useEffect(() => {
@@ -441,16 +445,53 @@ const MindMap: React.FC = () => {
       console.warn(`Node ${nodeId} not found in fullNodes`);
     }
   }, [fullNodes, focusOnNode, handleNodeClick, setSelectedNode]);
+  
+  // Handle quizzing a node
+  const handleQuizNode = useCallback(async (nodeId: string) => {
+    console.log(`Quizzing node: ${nodeId}`);
+    
+    // Find the node in our nodes array
+    const node = fullNodes.find(n => n.id === nodeId);
+    if (node) {
+      // Set this as the selected node
+      setSelectedNode(nodeId);
+      
+      // Focus the view on this node
+      focusOnNode(nodeId);
+      
+      // Generate questions for the node
+      setQuizLoading(true);
+      try {
+        // Generate questions for the node
+        const questionsResponse = await generateQuestions(
+          sessionId,
+          nodeId,
+          node.data?.content || '',
+          node.data?.label || ''
+        );
+        
+        setNodeQuestions(questionsResponse.questions || []);
+        setIsQuizModalOpen(true);
+      } catch (error) {
+        console.error('Error getting node questions:', error);
+      } finally {
+        setQuizLoading(false);
+      }
+    } else {
+      console.warn(`Node ${nodeId} not found in fullNodes`);
+    }
+  }, [fullNodes, focusOnNode, sessionId, setSelectedNode]);
 
-  // Create nodeTypes with the view handler - memoized to prevent recreation on each render
+  // Create nodeTypes with the view and quiz handlers - memoized to prevent recreation on each render
   const nodeTypesWithHandlers = useMemo(() => ({
     mindmap: (props: any) => (
       <MindMapNode
         {...props}
         onView={handleViewNode}
+        onQuiz={handleQuizNode}
       />
     )
-  }), [handleViewNode]);
+  }), [handleViewNode, handleQuizNode]);
 
   // Update the node processing to remove onView from data
   const processNodes = useCallback((inputNodes: any[]) => {
@@ -732,7 +773,8 @@ const MindMap: React.FC = () => {
         nodesDraggable={true}
         nodesConnectable={false}
         elementsSelectable={true}
-        zoomOnScroll
+        zoomOnScroll={true}
+        zoomOnPinch
         onNodeDragStop={handleNodeDrag}
         key={`flow-${focusedNode}-${nodes.length}-${edges.length}`}
       >
@@ -749,6 +791,18 @@ const MindMap: React.FC = () => {
           questions={nodeQuestions}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          onSubmitAnswer={handleSubmitAnswer}
+        />
+      )}
+      
+      {selectedNode && isQuizModalOpen && (
+        <QuizModal
+          nodeId={selectedNode}
+          label={nodes.find(n => n.id === selectedNode)?.data.label || ''}
+          content={nodes.find(n => n.id === selectedNode)?.data.content || ''}
+          questions={nodeQuestions}
+          isOpen={isQuizModalOpen}
+          onClose={() => setIsQuizModalOpen(false)}
           onSubmitAnswer={handleSubmitAnswer}
         />
       )}
