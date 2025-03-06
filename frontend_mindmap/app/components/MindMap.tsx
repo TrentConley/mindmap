@@ -26,6 +26,7 @@ import MindMapEdge from './MindMapEdge';
 import QuestionPanel from './QuestionPanel';
 import { useLearning } from '../context/LearningContext';
 import { ApiService, NodeData, EdgeData } from '../services/api';
+import { defaultTransformerMindMap } from '../data/defaultMindMap';
 
 // Define our node data type
 interface MindMapNodeData extends Record<string, unknown> {
@@ -144,6 +145,7 @@ export default function MindMap() {
   const [newTopic, setNewTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   
   // Get context values and functions
   const learningContext = useLearning();
@@ -161,37 +163,70 @@ export default function MindMap() {
         // Initialize the session
         await learningContext.initializeSession();
         
-        // Convert context nodes to React Flow nodes
-        if (learningContext.nodes && learningContext.nodes.length > 0) {
-          const flowNodes = learningContext.nodes.map((node: NodeData) => ({
-            id: node.id,
-            type: 'mindmap',
-            position: node.position || { x: 0, y: 0 },
-            data: {
-              label: node.data?.label || 'Untitled',
-              content: node.data?.content || '',
-              status: learningContext.nodeProgress[node.id]?.status || 'not_started'
-            }
-          })) as Node<MindMapNodeData>[];
-          
-          // Convert context edges to React Flow edges
-          const flowEdges = learningContext.edges.map((edge: EdgeData) => ({
-            id: edge.id,
-            source: edge.source,
-            target: edge.target,
-            type: 'mindmap',
-            animated: true
-          })) as Edge[];
-          
-          // Apply hierarchical layout
-          const arrangedNodes = arrangeNodesHierarchically(flowNodes, flowEdges);
-          
-          setNodes(arrangedNodes);
-          setEdges(flowEdges);
-          setIsInitialized(true);
-        }
+        // Get initial data
+        const mapData = await ApiService.getMindMap();
+        const progressData = await ApiService.getProgress();
+        
+        // Use the data we have or fall back to default
+        const nodes = mapData.nodes?.length > 0 ? mapData.nodes : defaultTransformerMindMap.nodes;
+        const edges = mapData.edges?.length > 0 ? mapData.edges : defaultTransformerMindMap.edges;
+        
+        // Convert to React Flow nodes
+        const flowNodes = nodes.map((node: NodeData) => ({
+          id: node.id,
+          type: 'mindmap',
+          position: node.position || { x: 0, y: 0 },
+          data: {
+            label: node.data?.label || 'Untitled',
+            content: node.data?.content || '',
+            status: progressData[node.id]?.status || node.status || 'not_started',
+            isFocused: false
+          }
+        })) as Node<MindMapNodeData>[];
+        
+        // Convert to React Flow edges
+        const flowEdges = edges.map((edge: EdgeData) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: 'mindmap',
+          animated: true
+        })) as Edge[];
+        
+        // Apply hierarchical layout
+        const arrangedNodes = arrangeNodesHierarchically(flowNodes, flowEdges);
+        
+        setNodes(arrangedNodes);
+        setEdges(flowEdges);
+        setIsInitialized(true);
       } catch (error) {
         console.error('Failed to initialize mind map:', error);
+        
+        // Fall back to default mind map on error
+        const flowNodes = defaultTransformerMindMap.nodes.map((node: NodeData) => ({
+          id: node.id,
+          type: 'mindmap',
+          position: node.position || { x: 0, y: 0 },
+          data: {
+            label: node.data?.label || 'Untitled',
+            content: node.data?.content || '',
+            status: node.status || 'not_started',
+            isFocused: false
+          }
+        })) as Node<MindMapNodeData>[];
+        
+        const flowEdges = defaultTransformerMindMap.edges.map((edge: EdgeData) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: 'mindmap',
+          animated: true
+        })) as Edge[];
+        
+        const arrangedNodes = arrangeNodesHierarchically(flowNodes, flowEdges);
+        setNodes(arrangedNodes);
+        setEdges(flowEdges);
+        setIsInitialized(true);
       } finally {
         setIsLoading(false);
       }
@@ -243,6 +278,141 @@ export default function MindMap() {
     setEdges((eds) => applyEdgeChanges(changes, eds) as Edge[]);
   }, []);
   
+  // Handle node click
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node<MindMapNodeData>) => {
+    event.preventDefault();
+    setFocusedNodeId(node.id);
+    
+    // Find connected nodes (children and parents)
+    const connectedEdges = edges.filter(
+      (edge) => edge.source === node.id || edge.target === node.id
+    );
+    
+    // Separate children and parents
+    const childEdges = connectedEdges.filter(edge => edge.source === node.id);
+    const parentEdges = connectedEdges.filter(edge => edge.target === node.id);
+    
+    const childNodeIds = new Set(childEdges.map(edge => edge.target));
+    const parentNodeIds = new Set(parentEdges.map(edge => edge.source));
+
+    // Update node visibility and positions
+    setNodes((nds) => {
+      const focusedNode = nds.find((n) => n.id === node.id);
+      if (!focusedNode) return nds;
+
+      return nds.map((n) => {
+        const isChild = childNodeIds.has(n.id);
+        const isParent = parentNodeIds.has(n.id);
+        const isFocused = n.id === node.id;
+
+        if (isFocused) {
+          // Center and highlight the focused node
+          return {
+            ...n,
+            position: { x: 0, y: 0 },
+            data: { 
+              ...n.data, 
+              isFocused: true 
+            },
+            style: { 
+              zIndex: 1000,
+              transform: 'scale(1.1)',
+              transition: 'all 0.3s ease'
+            }
+          };
+        }
+
+        if (isChild) {
+          // Position child nodes below in a semi-circle
+          const totalChildren = childNodeIds.size;
+          const index = Array.from(childNodeIds).indexOf(n.id);
+          const angle = -Math.PI / 2 + (Math.PI * (index + 1)) / (totalChildren + 1);
+          const radius = 250;
+
+          return {
+            ...n,
+            position: {
+              x: Math.cos(angle) * radius,
+              y: Math.sin(angle) * radius + 100 // Offset downward
+            },
+            data: { ...n.data, isFocused: false },
+            style: { 
+              opacity: 1,
+              transition: 'all 0.3s ease'
+            }
+          };
+        }
+
+        if (isParent) {
+          // Position parent nodes above
+          const totalParents = parentNodeIds.size;
+          const index = Array.from(parentNodeIds).indexOf(n.id);
+          const angle = Math.PI / 2 + (Math.PI * (index + 1)) / (totalParents + 1);
+          const radius = 250;
+
+          return {
+            ...n,
+            position: {
+              x: Math.cos(angle) * radius,
+              y: Math.sin(angle) * radius - 100 // Offset upward
+            },
+            data: { ...n.data, isFocused: false },
+            style: { 
+              opacity: 1,
+              transition: 'all 0.3s ease'
+            }
+          };
+        }
+
+        // Fade out non-connected nodes
+        return {
+          ...n,
+          position: {
+            x: n.position.x * 1.5,
+            y: n.position.y * 1.5
+          },
+          data: { ...n.data, isFocused: false },
+          style: { 
+            opacity: 0.2,
+            transition: 'all 0.3s ease'
+          }
+        };
+      });
+    });
+  }, [edges, setNodes]);
+
+  // Reset view
+  const resetView = useCallback(() => {
+    setFocusedNodeId(null);
+    
+    // Reset all nodes to their original positions and states
+    if (learningContext.nodes && learningContext.nodes.length > 0) {
+      const flowNodes = learningContext.nodes.map((node: NodeData) => ({
+        id: node.id,
+        type: 'mindmap',
+        position: node.position || { x: 0, y: 0 },
+        data: {
+          label: node.data?.label || 'Untitled',
+          content: node.data?.content || '',
+          status: learningContext.nodeProgress[node.id]?.status || 'not_started',
+          isFocused: false
+        }
+      })) as Node<MindMapNodeData>[];
+      
+      const flowEdges = learningContext.edges.map((edge: EdgeData) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: 'mindmap',
+        animated: true
+      })) as Edge[];
+      
+      const arrangedNodes = arrangeNodesHierarchically(flowNodes, flowEdges);
+      setNodes(arrangedNodes);
+      setEdges(flowEdges);
+    }
+  }, [learningContext.nodes, learningContext.edges, learningContext.nodeProgress, setNodes, setEdges]);
+  
   const showCreateMindMapModal = useCallback(() => {
     setIsCreateModalOpen(true);
   }, []);
@@ -251,7 +421,7 @@ export default function MindMap() {
     setIsGenerating(true);
     try {
       // Call the API to generate a new mindmap
-      const result = await ApiService.createMindMap(newTopic);
+      const result = await ApiService.createMindMap();
       
       // Update the context with the new mindmap
       learningContext.setMindMap(result.nodes, result.edges);
@@ -280,90 +450,95 @@ export default function MindMap() {
           </div>
         </div>
       ) : (
-        <Flow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          defaultEdgeOptions={defaultEdgeOptions}
-          connectionLineType={ConnectionLineType.Straight}
-          className="w-full h-full"
-          fitView
-          attributionPosition="bottom-right"
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={12}
-            size={1}
-            color="rgba(255, 255, 255, 0.1)"
-            style={{ backgroundColor: '#121212' }}
-          />
-          <Controls />
-          <Panel position="top-right" className="bg-[#2a2a2a] p-3 rounded-md shadow-lg">
-            <button 
-              onClick={showCreateMindMapModal}
-              className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              Create New Mind Map
-            </button>
-          </Panel>
-          <Panel position="top-right" className="z-10">
-            <div className="bg-white p-2 rounded shadow-lg border border-gray-300">
-              <h3 className="font-bold text-lg text-gray-800">Mind Map Learning</h3>
-              <p className="text-sm text-gray-600">Click on a node to start learning</p>
-            </div>
-          </Panel>
-        </Flow>
-      )}
-      
-      {selectedNode && (
-        <QuestionPanel 
-          nodeId={selectedNode} 
-          onClose={() => setSelectedNode(null)}
-        />
-      )}
-      
-      {/* New Mindmap Creation Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Create New Mindmap</h2>
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-2 font-medium" htmlFor="topicInput">
-                Enter a topic for your mindmap:
-              </label>
-              <input
-                id="topicInput"
-                type="text"
-                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={newTopic}
-                onChange={(e) => setNewTopic(e.target.value)}
-                placeholder="e.g., Machine Learning, Web Development, Quantum Physics"
-              />
-            </div>
-            <div className="flex justify-end space-x-3">
-              <button
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded cursor-pointer"
-                onClick={() => setIsCreateModalOpen(false)}
+        <>
+          <Flow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            defaultEdgeOptions={defaultEdgeOptions}
+            connectionLineType={ConnectionLineType.Straight}
+            className="w-full h-full"
+            fitView
+            attributionPosition="bottom-right"
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={12}
+              size={1}
+              color="rgba(255, 255, 255, 0.1)"
+              style={{ backgroundColor: '#121212' }}
+            />
+            <Controls />
+            <Panel position="top-right" className="bg-[#2a2a2a] p-3 rounded-md shadow-lg space-y-2">
+              {focusedNodeId && (
+                <button
+                  onClick={resetView}
+                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Reset View
+                </button>
+              )}
+              <button 
+                onClick={showCreateMindMapModal}
+                className="w-full px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
               >
-                Cancel
+                Create New Mind Map
               </button>
-              <button
-                className={`bg-blue-500 text-white font-semibold py-2 px-6 rounded ${
-                  isGenerating || !newTopic.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600 cursor-pointer'
-                }`}
-                onClick={createNewMindMap}
-                disabled={isGenerating || !newTopic.trim()}
-              >
-                {isGenerating ? 'Generating...' : 'Create'}
-              </button>
+            </Panel>
+          </Flow>
+
+          {selectedNode && (
+            <QuestionPanel 
+              nodeId={selectedNode} 
+              onClose={() => setSelectedNode(null)}
+            />
+          )}
+
+          {/* New Mindmap Creation Modal */}
+          {isCreateModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <h2 className="text-xl font-bold mb-4 text-gray-800">Create New Mindmap</h2>
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-2 font-medium" htmlFor="topicInput">
+                    Enter a topic for your mindmap:
+                  </label>
+                  <input
+                    id="topicInput"
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={newTopic}
+                    onChange={(e) => setNewTopic(e.target.value)}
+                    placeholder="e.g., Machine Learning, Web Development, Quantum Physics"
+                  />
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded cursor-pointer"
+                    onClick={() => setIsCreateModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={`bg-blue-500 text-white font-semibold py-2 px-6 rounded ${
+                      isGenerating || !newTopic.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600 cursor-pointer'
+                    }`}
+                    onClick={createNewMindMap}
+                    disabled={isGenerating || !newTopic.trim()}
+                  >
+                    {isGenerating ? 'Generating...' : 'Create'}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
