@@ -21,6 +21,7 @@ interface MindMapNodeProps extends NodeProps {
     label: string;
     content: string;
     status?: string;
+    isParent?: boolean;
     onView?: (nodeId: string) => void;
   };
 }
@@ -61,6 +62,21 @@ const MindMapNode = memo(({
   };
 
   const renderContent = () => {
+    // If the node is a parent node, add special parent-specific content
+    if (data && data.isParent) {
+      return (
+        <>
+          <div className="p-3">
+            <p className="text-sm">{truncateText(data.content || '', 80)}</p>
+            <div className="text-center mt-2 text-blue-600 text-sm font-semibold">
+              ↑ Click to go back to parent
+            </div>
+          </div>
+        </>
+      );
+    }
+    
+    // Handle locked nodes
     if (isLocked) {
       return (
         <div className="p-3 text-center text-muted-foreground">
@@ -79,6 +95,7 @@ const MindMapNode = memo(({
       );
     }
 
+    // Regular node content
     return (
       <>
         <div className="p-3">
@@ -118,7 +135,10 @@ const MindMapNode = memo(({
         isConnectable={isSelectable}
         className="!bg-muted-foreground"
       />
-      <BaseNode selected={selected} status={data && typeof data.status === 'string' ? data.status : undefined}>
+      <BaseNode 
+        selected={selected} 
+        status={data && typeof data.status === 'string' ? data.status : undefined}
+        isParent={data && data.isParent === true}>
         <NodeHeader className="-mx-0 -mt-0 border-b">
           <NodeHeaderIcon>
             <Brain />

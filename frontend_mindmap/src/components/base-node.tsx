@@ -6,13 +6,15 @@ interface BaseNodeProps {
   children: React.ReactNode;
   className?: string;
   status?: string;
+  isParent?: boolean;
 }
 
 export const BaseNode: React.FC<BaseNodeProps> = ({ 
   selected = false, 
   children, 
   className = '',
-  status = 'not_started'
+  status = 'not_started',
+  isParent = false
 }) => {
   const nodeStatusClass = status === 'completed' 
     ? 'completed' 
@@ -28,6 +30,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         'mindmap-node w-64 min-h-[100px] overflow-hidden',
         selected && 'selected',
         nodeStatusClass,
+        isParent && 'parent-node border-dashed border-blue-500 bg-blue-50',
         className
       )}
     >

@@ -80,7 +80,7 @@ const MindMap: React.FC = () => {
     }
   }, [sessionId]);
 
-  // Function to focus on a specific node and show its direct children
+  // Function to focus on a specific node and show its direct children + parent
   const focusOnNode = useCallback((nodeId: string) => {
     if (!nodeId || !fullNodes.length || !fullEdges.length) {
       console.warn(`Cannot focus on node ${nodeId}: fullNodes or fullEdges is empty`);
@@ -90,8 +90,6 @@ const MindMap: React.FC = () => {
     }
     
     console.log(`Focusing on node: ${nodeId}`);
-    console.log('Current fullNodes:', fullNodes.map(n => n.id));
-    console.log('Current fullEdges:', fullEdges.map(e => `${e.source} -> ${e.target}`));
     
     setFocusedNode(nodeId);
     
@@ -102,27 +100,32 @@ const MindMap: React.FC = () => {
     
     console.log(`Direct children of ${nodeId}:`, directChildren);
     
-    if (directChildren.length === 0) {
-      console.warn(`Node ${nodeId} has no children in the edge data!`);
-    }
+    // Find parent node (if it exists)
+    const parentEdge = fullEdges.find(edge => edge.target === nodeId);
+    const parentId = parentEdge?.source;
     
-    // Filter nodes to include the focused node and its direct children
+    console.log(`Parent of ${nodeId}:`, parentId);
+    
+    // Filter nodes to include the focused node, its direct children, and its parent
     const visibleNodes = fullNodes.filter(
-      node => node.id === nodeId || directChildren.includes(node.id)
+      node => node.id === nodeId || 
+              directChildren.includes(node.id) || 
+              (parentId && node.id === parentId)
     );
     
-    // Filter edges to only include connections from focused node to its children
+    // Filter edges to include connections from focused node to its children
+    // AND the edge from parent to focused node (if it exists)
     const visibleEdges = fullEdges.filter(
-      edge => edge.source === nodeId
+      edge => edge.source === nodeId || 
+              (parentId && edge.source === parentId && edge.target === nodeId)
     );
     
     console.log(`Setting ${visibleNodes.length} visible nodes and ${visibleEdges.length} visible edges`);
-    console.log('Visible node IDs:', visibleNodes.map(node => node.id));
     
     // Ensure all visible nodes have proper statuses
     const updatedVisibleNodes = visibleNodes.map(node => {
       // Make sure child nodes are properly unlocked if needed
-      if (node.id !== nodeId && node.data.status === 'locked') {
+      if (node.id !== nodeId && directChildren.includes(node.id) && node.data.status === 'locked') {
         const parentCompleted = fullNodes.find(n => n.id === nodeId)?.data.status === 'completed';
         if (parentCompleted) {
           return {
@@ -134,32 +137,86 @@ const MindMap: React.FC = () => {
           };
         }
       }
+      
+      // Add special styling to parent node
+      if (parentId && node.id === parentId) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            isParent: true // Mark as parent for special styling
+          }
+        };
+      }
+      
       return node;
     });
     
-    // Position focused node at the center if there's only one child or none
+    // Position nodes with good spacing
     let finalVisibleNodes = [...updatedVisibleNodes];
-    if (directChildren.length <= 1) {
-      // Find the focused node's position
-      const focusedNodeObj = updatedVisibleNodes.find(n => n.id === nodeId);
-      if (focusedNodeObj) {
-        // Update the position to be at the top center
-        finalVisibleNodes = updatedVisibleNodes.map(node => {
-          if (node.id === nodeId) {
-            return {
-              ...node,
-              position: { x: 0, y: -100 } // Position at top center
-            };
-          } else if (directChildren.includes(node.id)) {
-            // Position the single child below
-            return {
-              ...node,
-              position: { x: 0, y: 100 }
-            };
-          }
-          return node;
+    
+    // Get the focused node
+    const focusedNodeObj = finalVisibleNodes.find(n => n.id === nodeId);
+    if (focusedNodeObj) {
+      // Position the focused node at the center
+      const centerPosition = { x: 0, y: 0 };
+      
+      // Calculate positions for children in a radial layout below the focused node
+      const childPositions: Record<string, {x: number, y: number}> = {};
+      
+      if (directChildren.length > 0) {
+        // Distribute children in a semi-circle below the focused node
+        const radius = 250; // Distance from focused node
+        const startAngle = -Math.PI / 2 - Math.PI / 4; // Start from -135 degrees
+        const endAngle = -Math.PI / 2 + Math.PI / 4; // End at -45 degrees
+        
+        // Calculate angle step based on number of children
+        const angleStep = directChildren.length <= 1 
+          ? 0 
+          : (endAngle - startAngle) / (directChildren.length - 1);
+        
+        directChildren.forEach((childId, index) => {
+          const angle = directChildren.length <= 1 
+            ? -Math.PI / 2 // Single child directly below
+            : startAngle + angleStep * index;
+          
+          childPositions[childId] = {
+            x: centerPosition.x + radius * Math.cos(angle),
+            y: centerPosition.y + radius * Math.sin(angle)
+          };
         });
       }
+      
+      // Position parent node above focused node if it exists
+      const parentPosition = parentId ? { x: 0, y: -200 } : null;
+      
+      // Apply positions to all nodes
+      finalVisibleNodes = finalVisibleNodes.map(node => {
+        if (node.id === nodeId) {
+          // Focused node at center
+          return {
+            ...node,
+            position: centerPosition
+          };
+        } else if (directChildren.includes(node.id)) {
+          // Child nodes in semi-circle
+          return {
+            ...node,
+            position: childPositions[node.id]
+          };
+        } else if (parentId && node.id === parentId) {
+          // Parent node above
+          return {
+            ...node,
+            position: parentPosition,
+            data: {
+              ...node.data,
+              isParent: true // Mark as parent for special styling
+            }
+          };
+        }
+        return node;
+      });
     }
     
     // Update the visible nodes and edges
@@ -167,8 +224,9 @@ const MindMap: React.FC = () => {
     setEdges(visibleEdges);
     
     // Log the final node positions
-    console.log('Setting nodes with positions:', finalVisibleNodes.map(n => ({
+    console.log('Node positions:', finalVisibleNodes.map(n => ({
       id: n.id,
+      label: n.data.label,
       x: n.position.x,
       y: n.position.y
     })));
