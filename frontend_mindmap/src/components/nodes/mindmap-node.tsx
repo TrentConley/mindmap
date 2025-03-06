@@ -17,6 +17,12 @@ interface MindMapNodeProps extends NodeProps {
   onUnlock?: (nodeId: string) => void;
   onView?: (nodeId: string) => void;
   isLocked?: boolean;
+  data: {
+    label: string;
+    content: string;
+    status?: string;
+    onView?: (nodeId: string) => void;
+  };
 }
 
 const MindMapNode = memo(({ 
@@ -42,9 +48,15 @@ const MindMapNode = memo(({
   };
 
   const handleView = (e: React.MouseEvent) => {
+    console.log('handleView called for node:', nodeId);
     e.stopPropagation();
-    if (onView && nodeId) {
-      onView(nodeId);
+    // Try to get onView from props first, then from data
+    const viewHandler = onView || (data && data.onView);
+    if (viewHandler && nodeId) {
+      console.log('Calling view handler for node:', nodeId);
+      viewHandler(nodeId);
+    } else {
+      console.warn('No view handler available for node:', nodeId);
     }
   };
 

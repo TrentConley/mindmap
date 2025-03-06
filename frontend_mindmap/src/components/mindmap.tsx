@@ -80,138 +80,6 @@ const MindMap: React.FC = () => {
     }
   }, [sessionId]);
 
-  const handleTopicSelect = async (selectedTopic: string) => {
-    setIsLoading(true);
-    setTopic(selectedTopic);
-    
-    try {
-      console.log(`Selecting topic: ${selectedTopic}`);
-      
-      // For 'Transformer Architecture', use our local data
-      if (selectedTopic === 'Transformer Architecture') {
-        console.log('Using local transformer mindmap data');
-        
-        // Use our predefined transformer mindmap
-        const processedNodes = transformerMindMap.nodes.map(node => ({
-          ...node,
-          type: 'mindmap',
-          data: {
-            ...node.data,
-            status: node.id === 'root' ? 'in_progress' : node.data.status || 'locked'
-          },
-          draggable: true, // Enable dragging for all nodes
-        }));
-
-        const processedEdges = transformerMindMap.edges.map(edge => ({
-          ...edge,
-          type: 'mindmap'
-        }));
-        
-        console.log(`Total nodes: ${processedNodes.length}, Total edges: ${processedEdges.length}`);
-        
-        // Store the full mindmap
-        setFullNodes(processedNodes);
-        setFullEdges(processedEdges);
-        
-        // Set the root node as the focused node
-        setFocusedNode('root');
-        
-        // Filter visible nodes (root and its direct children)
-        const rootDirectChildren = processedEdges
-          .filter(edge => edge.source === 'root')
-          .map(edge => edge.target);
-        
-        console.log('Root direct children:', rootDirectChildren);
-          
-        const visibleNodes = processedNodes.filter(
-          node => node.id === 'root' || rootDirectChildren.includes(node.id)
-        );
-        
-        const visibleEdges = processedEdges.filter(
-          edge => edge.source === 'root'
-        );
-        
-        console.log(`Setting visible nodes: ${visibleNodes.length}, visible edges: ${visibleEdges.length}`);
-        console.log('Visible node IDs:', visibleNodes.map(node => node.id));
-        
-        setNodes(visibleNodes);
-        setEdges(visibleEdges);
-        
-        // Initialize session with all nodes and edges
-        await initializeSession(sessionId, processedNodes, processedEdges);
-        
-        // Set the root node as in_progress
-        await updateNodeStatus(sessionId, 'root', 'in_progress');
-      } else {
-        // For other topics, use the API
-        const result = await createMindMap(sessionId, selectedTopic) as MindMapApiResponse;
-        
-        // Process the nodes to include additional props needed by MindMapNode
-        const processedNodes = result.nodes.map(node => ({
-          ...node,
-          type: 'mindmap',
-          data: {
-            ...node.data,
-            status: 'not_started'
-          },
-          draggable: true, // Enable dragging for all nodes
-        }));
-
-        // Process edges to have the correct type
-        const processedEdges = result.edges.map(edge => ({
-          ...edge,
-          type: 'mindmap'
-        }));
-        
-        // Store the full mindmap
-        setFullNodes(processedNodes);
-        setFullEdges(processedEdges);
-        
-        // Initialize session with all nodes and edges
-        await initializeSession(sessionId, processedNodes, processedEdges);
-        
-        // Set the root node as unlocked/in_progress
-        if (processedNodes.length > 0) {
-          const rootNodeId = processedNodes[0].id;
-          await updateNodeStatus(sessionId, rootNodeId, 'in_progress');
-          
-          // Update local state to reflect the change
-          setFullNodes(nodes => 
-            nodes.map(node => 
-              node.id === rootNodeId 
-                ? { ...node, data: { ...node.data, status: 'in_progress' } } 
-                : node
-            )
-          );
-          
-          // Set the root node as the focused node
-          setFocusedNode(rootNodeId);
-          
-          // Filter visible nodes (root and its direct children)
-          const rootDirectChildren = processedEdges
-            .filter(edge => edge.source === rootNodeId)
-            .map(edge => edge.target);
-            
-          const visibleNodes = processedNodes.filter(
-            node => node.id === rootNodeId || rootDirectChildren.includes(node.id)
-          );
-          
-          const visibleEdges = processedEdges.filter(
-            edge => edge.source === rootNodeId
-          );
-          
-          setNodes(visibleNodes);
-          setEdges(visibleEdges);
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error creating mindmap:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Function to focus on a specific node and show its direct children
   const focusOnNode = useCallback((nodeId: string) => {
     if (!nodeId || !fullNodes.length || !fullEdges.length) {
@@ -388,43 +256,182 @@ const MindMap: React.FC = () => {
     }
   }, [sessionId, lastClickedNode, lastClickTime, focusOnNode, setNodes, setFullNodes, fullNodes, fullEdges]);
 
-  /* This handler will be used in future extension to unlock nodes
-  const handleUnlockNode = async (nodeId: string) => {
-    try {
-      const unlockResponse = await checkNodeUnlockable(sessionId, nodeId);
-      
-      if (unlockResponse.unlockable) {
-        // Update node status to not_started (unlocked)
-        await updateNodeStatus(sessionId, nodeId, 'not_started');
-        
-        // Update local state
-        setNodes(nodes => 
-          nodes.map(node => 
-            node.id === nodeId 
-              ? { ...node, data: { ...node.data, status: 'not_started' } } 
-              : node
-          )
-        );
-      } else {
-        alert('This node cannot be unlocked yet. Complete prerequisite nodes first.');
-      }
-    } catch (error) {
-      console.error('Error unlocking node:', error);
-    }
-  }; */
-
-  /* This handler will be used in future extension to view nodes
-  const handleViewNode = (nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
+  // Handle viewing of a node
+  const handleViewNode = useCallback((nodeId: string) => {
+    console.log(`Viewing node: ${nodeId}`);
+    
+    // Find the node in our nodes array
+    const node = fullNodes.find(n => n.id === nodeId);
     if (node) {
+      console.log('Node details:', {
+        label: node.data.label,
+        content: node.data.content,
+        status: node.data.status
+      });
+
+      // Set this as the selected node
       setSelectedNode(nodeId);
-      // This would trigger getting the questions as in handleNodeClick
-      handleNodeClick({} as React.MouseEvent, node as Node);
+      
+      // Focus the view on this node and its children
+      focusOnNode(nodeId);
+      
+      // Simulate a double click to show questions
+      handleNodeClick({} as React.MouseEvent, node);
+    } else {
+      console.warn(`Node ${nodeId} not found in fullNodes`);
     }
-  }; */
+  }, [fullNodes, focusOnNode, handleNodeClick, setSelectedNode]);
+
+  // Create nodeTypes with the view handler
+  const nodeTypesWithHandlers = useCallback(() => ({
+    mindmap: (props: any) => (
+      <MindMapNode
+        {...props}
+        onView={handleViewNode}
+      />
+    )
+  }), [handleViewNode]);
+
+  // Update the node processing to remove onView from data
+  const processNodes = useCallback((inputNodes: any[]) => {
+    return inputNodes.map(node => ({
+      ...node,
+      type: 'mindmap',
+      data: {
+        ...node.data,
+        status: node.id === 'root' ? 'in_progress' : node.data.status || 'locked'
+      },
+      draggable: true
+    }));
+  }, []);
+
+  const handleTopicSelect = async (selectedTopic: string) => {
+    setIsLoading(true);
+    setTopic(selectedTopic);
+    
+    try {
+      console.log(`Selecting topic: ${selectedTopic}`);
+      
+      // For 'Transformer Architecture', use our local data
+      if (selectedTopic === 'Transformer Architecture') {
+        console.log('Using local transformer mindmap data');
+        
+        // Use our predefined transformer mindmap with the new processNodes function
+        const processedNodes = processNodes(transformerMindMap.nodes);
+
+        const processedEdges = transformerMindMap.edges.map(edge => ({
+          ...edge,
+          type: 'mindmap'
+        }));
+        
+        console.log(`Total nodes: ${processedNodes.length}, Total edges: ${processedEdges.length}`);
+        
+        // Store the full mindmap
+        setFullNodes(processedNodes);
+        setFullEdges(processedEdges);
+        
+        // Set the root node as the focused node
+        setFocusedNode('root');
+        
+        // Filter visible nodes (root and its direct children)
+        const rootDirectChildren = processedEdges
+          .filter(edge => edge.source === 'root')
+          .map(edge => edge.target);
+        
+        console.log('Root direct children:', rootDirectChildren);
+          
+        const visibleNodes = processedNodes.filter(
+          node => node.id === 'root' || rootDirectChildren.includes(node.id)
+        );
+        
+        const visibleEdges = processedEdges.filter(
+          edge => edge.source === 'root'
+        );
+        
+        console.log(`Setting visible nodes: ${visibleNodes.length}, visible edges: ${visibleEdges.length}`);
+        console.log('Visible node IDs:', visibleNodes.map(node => node.id));
+        
+        setNodes(visibleNodes);
+        setEdges(visibleEdges);
+        
+        // Initialize session with all nodes and edges
+        await initializeSession(sessionId, processedNodes, processedEdges);
+        
+        // Set the root node as in_progress
+        await updateNodeStatus(sessionId, 'root', 'in_progress');
+      } else {
+        // For other topics, use the API
+        const result = await createMindMap(sessionId, selectedTopic) as MindMapApiResponse;
+        
+        // Process the nodes to include additional props needed by MindMapNode
+        const processedNodes = result.nodes.map(node => ({
+          ...node,
+          type: 'mindmap',
+          data: {
+            ...node.data,
+            status: 'not_started'
+          },
+          draggable: true, // Enable dragging for all nodes
+        }));
+
+        // Process edges to have the correct type
+        const processedEdges = result.edges.map(edge => ({
+          ...edge,
+          type: 'mindmap'
+        }));
+        
+        // Store the full mindmap
+        setFullNodes(processedNodes);
+        setFullEdges(processedEdges);
+        
+        // Initialize session with all nodes and edges
+        await initializeSession(sessionId, processedNodes, processedEdges);
+        
+        // Set the root node as unlocked/in_progress
+        if (processedNodes.length > 0) {
+          const rootNodeId = processedNodes[0].id;
+          await updateNodeStatus(sessionId, rootNodeId, 'in_progress');
+          
+          // Update local state to reflect the change
+          setFullNodes(nodes => 
+            nodes.map(node => 
+              node.id === rootNodeId 
+                ? { ...node, data: { ...node.data, status: 'in_progress' } } 
+                : node
+            )
+          );
+          
+          // Set the root node as the focused node
+          setFocusedNode(rootNodeId);
+          
+          // Filter visible nodes (root and its direct children)
+          const rootDirectChildren = processedEdges
+            .filter(edge => edge.source === rootNodeId)
+            .map(edge => edge.target);
+            
+          const visibleNodes = processedNodes.filter(
+            node => node.id === rootNodeId || rootDirectChildren.includes(node.id)
+          );
+          
+          const visibleEdges = processedEdges.filter(
+            edge => edge.source === rootNodeId
+          );
+          
+          setNodes(visibleNodes);
+          setEdges(visibleEdges);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error creating mindmap:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle node dragging to update positions in both visible and full node sets
   const handleNodeDrag = useCallback((event: React.MouseEvent, node: any, nodes: any[]) => {
+
     // Update the node positions in the full nodes array
     setFullNodes(prevNodes => 
       prevNodes.map(n => 
@@ -555,7 +562,7 @@ const MindMap: React.FC = () => {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
+        nodeTypes={nodeTypesWithHandlers()}
         edgeTypes={edgeTypes}
         onNodeClick={handleNodeClick}
         proOptions={{ hideAttribution: true }}
@@ -567,7 +574,7 @@ const MindMap: React.FC = () => {
         elementsSelectable={true}
         zoomOnScroll
         onNodeDragStop={handleNodeDrag}
-        key={`flow-${focusedNode}-${nodes.length}-${edges.length}`} // This ensures everything re-renders when nodes/edges change
+        key={`flow-${focusedNode}-${nodes.length}-${edges.length}`}
       >
         <Background variant={BackgroundVariant.Dots} />
         <Controls />
