@@ -27,7 +27,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   return (
     <div 
       className={cn(
-        'mindmap-node w-80 min-h-[150px] overflow-hidden',
+        'mindmap-node w-80 min-h-[150px] max-h-[400px] overflow-hidden flex flex-col',
         selected && 'selected',
         nodeStatusClass,
         isParent && 'parent-node border-2 border-dashed border-blue-500 bg-blue-50 shadow-md',

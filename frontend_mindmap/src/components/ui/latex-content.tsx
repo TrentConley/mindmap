@@ -7,7 +7,7 @@ interface LatexContentProps {
 
 const LatexContent: React.FC<LatexContentProps> = ({ content }) => {
   return (
-    <div className="latex-content text-sm max-h-[400px] overflow-y-auto">
+    <div className="latex-content text-sm">
       <Latex>{content}</Latex>
     </div>
   );

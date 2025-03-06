@@ -11,9 +11,9 @@ const PathNavigator: React.FC<PathNavigatorProps> = ({ path, onNavigate }) => {
   if (!path.length) return null;
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-md shadow-md p-2 pr-3 max-w-[80vw] flex items-center">
-      <h3 className="text-sm font-semibold mr-2 text-gray-700">Knowledge Path:</h3>
-      <div className="flex items-center overflow-x-auto overflow-y-hidden scrollbar-hide gap-1">
+    <div className="bg-white/80 backdrop-blur-sm rounded-md shadow-md p-2 pr-3 w-full flex items-center">
+      <h3 className="text-sm font-semibold mr-2 text-gray-700 whitespace-nowrap flex-shrink-0">Knowledge Path:</h3>
+      <div className="flex items-center overflow-x-auto overflow-y-hidden scrollbar-hide gap-1 pb-1 pl-1 -ml-1 max-w-full">
         {path.map((node, index) => (
           <React.Fragment key={node.id}>
             <Button

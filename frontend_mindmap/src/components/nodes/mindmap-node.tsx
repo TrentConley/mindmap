@@ -66,7 +66,7 @@ const MindMapNode = memo(({
     if (data && data.isParent) {
       return (
         <>
-          <div className="p-3">
+          <div className="p-3 flex-grow flex flex-col items-center justify-center">
             <div className="flex justify-center mb-2">
               <div className="bg-blue-100 rounded-full p-1 border border-blue-300">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -74,7 +74,9 @@ const MindMapNode = memo(({
                 </svg>
               </div>
             </div>
-            <p className="text-sm text-center">{truncateText(data.content || '', 80)}</p>
+            <div className="overflow-y-auto scrollbar-hide max-h-[100px] text-center w-full">
+              <p className="text-sm">{truncateText(data.content || '', 150)}</p>
+            </div>
             <div className="text-center mt-2 text-blue-600 text-sm font-semibold">
               Click to go back to parent
             </div>
@@ -86,7 +88,7 @@ const MindMapNode = memo(({
     // Handle locked nodes
     if (isLocked) {
       return (
-        <div className="p-3 text-center text-muted-foreground">
+        <div className="p-3 flex-grow flex flex-col items-center justify-center text-muted-foreground">
           <Lock className="h-5 w-5 mx-auto mb-1" />
           <p className="text-sm">This topic is locked</p>
           <Button 
@@ -105,14 +107,16 @@ const MindMapNode = memo(({
     // Regular node content
     return (
       <>
-        <div className="p-3">
+        <div className="p-3 flex-grow overflow-auto">
           {expanded 
-            ? <LatexContent content={data && typeof data.content === 'string' ? data.content : ''} />
+            ? <div className="max-h-[290px] overflow-y-auto scrollbar-hide pr-1">
+                <LatexContent content={data && typeof data.content === 'string' ? data.content : ''} />
+              </div>
             : <p className="text-sm">{truncateText(data && typeof data.content === 'string' ? data.content : '', 180)}</p>
           }
         </div>
 
-        <div className="px-3 pb-3 flex justify-between">
+        <div className="px-3 pb-3 flex justify-between mt-auto">
           <Button 
             variant="outline" 
             size="sm" 

@@ -754,7 +754,7 @@ const MindMap: React.FC = () => {
       )}
       
       {/* Path Navigator in upper right */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 right-4 z-10 max-w-[65%]">
         <PathNavigator path={nodePath} onNavigate={focusOnNode} />
       </div>
       
