@@ -14,17 +14,20 @@
   "license": "ISC",
   "description": "Mindmap application using React Flow",
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.6",
     "@xyflow/react": "^12.0.0",
     "axios": "^1.6.0",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.0",
-    "katex": "^0.16.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "katex": "^0.16.21",
     "lucide-react": "^0.363.0",
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-katex": "^3.0.1",
-    "prop-types": "^15.8.1",
-    "tailwind-merge": "^2.2.1"
+    "react-latex-next": "^3.0.0",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

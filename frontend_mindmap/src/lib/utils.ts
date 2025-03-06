@@ -11,7 +11,7 @@ export function truncateText(text: string, maxLength: number = 100): string {
 }
 
 export function generateSessionId(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  return Math.random().toString(36).substring(2, 15);
 }
 
 export function getNodeStatusColor(status: string): string {

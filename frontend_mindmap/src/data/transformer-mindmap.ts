@@ -1,16 +1,21 @@
 import { Node, Edge } from '@xyflow/react';
-import { NodeDataType } from '@/components/mindmap';
 
-export const transformerNodes: Node<NodeDataType>[] = [
+interface NodeData extends Record<string, unknown> {
+  label: string;
+  content: string;
+  status?: string;
+}
+
+export const transformerNodes: Node<NodeData>[] = [
   {
     id: 'root',
     type: 'mindmap',
     data: {
       label: 'Transformer Architecture',
-      content: 'A comprehensive overview of the transformer architecture used in modern NLP models.',
+      content: 'The Transformer architecture revolutionized natural language processing with its self-attention mechanism. It processes sequences by learning relationships between all elements simultaneously.',
       status: 'not_started'
     },
-    position: { x: 0, y: -300 }
+    position: { x: 0, y: 0 }
   },
   
   // Section 1: Input Processing
@@ -19,30 +24,30 @@ export const transformerNodes: Node<NodeDataType>[] = [
     type: 'mindmap',
     data: {
       label: 'Input Processing',
-      content: 'How raw data (e.g., text) is prepared for the transformer.',
+      content: 'The input processing stage converts raw text into a format suitable for the model.',
       status: 'locked'
     },
-    position: { x: -300, y: 0 }
+    position: { x: -400, y: 100 }
   },
   {
     id: 'text_input',
     type: 'mindmap',
     data: {
       label: 'Text Input',
-      content: 'Raw text: e.g., "The cat sat on the mat."',
+      content: 'Raw text input is processed into tokens. For example, "Hello world!" becomes ["Hello", "world", "!"]',
       status: 'locked'
     },
-    position: { x: -300, y: 200 }
+    position: { x: -600, y: 200 }
   },
   {
     id: 'tokenization',
     type: 'mindmap',
     data: {
       label: 'Tokenization',
-      content: 'Converting text into smaller units (tokens).',
+      content: 'The process of breaking text into tokens. Common approaches include BPE (Byte Pair Encoding) and WordPiece.',
       status: 'locked'
     },
-    position: { x: -200, y: 200 }
+    position: { x: -400, y: 200 }
   },
   {
     id: 'subword_tokenization',
@@ -59,10 +64,10 @@ export const transformerNodes: Node<NodeDataType>[] = [
     type: 'mindmap',
     data: {
       label: 'Embedding Layer',
-      content: 'Maps tokens to dense vectors.',
+      content: 'Converts tokens into dense vectors. If vocabulary size is $|V|$ and embedding dimension is $d_{model}$, the embedding matrix $E \\in \\mathbb{R}^{|V| \\times d_{model}}$.',
       status: 'locked'
     },
-    position: { x: -100, y: 200 }
+    position: { x: -200, y: 200 }
   },
   {
     id: 'learnable_embeddings',
@@ -79,7 +84,7 @@ export const transformerNodes: Node<NodeDataType>[] = [
     type: 'mindmap',
     data: {
       label: 'Positional Encoding',
-      content: 'Adds information about token positions since transformers lack inherent order.',
+      content: 'Adds position information to embeddings. For position $pos$ and dimension $i$: $PE_{(pos,2i)} = \\sin(pos/10000^{2i/d_{model}})$ $PE_{(pos,2i+1)} = \\cos(pos/10000^{2i/d_{model}})$',
       status: 'locked'
     },
     position: { x: 0, y: 200 }
@@ -111,30 +116,30 @@ export const transformerNodes: Node<NodeDataType>[] = [
     type: 'mindmap',
     data: {
       label: 'Encoder',
-      content: 'Processes the input sequence into a rich representation. Typically consists of $N$ identical layers (e.g., $N = 6$).',
+      content: 'The encoder processes input sequences using self-attention and feed-forward networks.',
       status: 'locked'
     },
-    position: { x: -100, y: 0 }
+    position: { x: -200, y: 100 }
   },
   {
     id: 'encoder_layer',
     type: 'mindmap',
     data: {
       label: 'Encoder Layer',
-      content: 'Input: Embedded sequence with positional encodings.\nRepeated $N$ times (typically 6-12 layers).',
+      content: 'Each encoder layer has two sub-layers: multi-head self-attention and position-wise feed-forward network.',
       status: 'locked'
     },
-    position: { x: 0, y: -300 }
+    position: { x: -200, y: 300 }
   },
   {
     id: 'multi_head_attention',
     type: 'mindmap',
     data: {
-      label: 'Multi-Head Self-Attention',
-      content: 'Allows the model to focus on different parts of the input simultaneously.',
+      label: 'Multi-Head Attention',
+      content: 'Attention mechanism: $Attention(Q,K,V) = softmax(\\frac{QK^T}{\\sqrt{d_k}})V$ where Q=Query, K=Key, V=Value matrices.',
       status: 'locked'
     },
-    position: { x: -150, y: -400 }
+    position: { x: -400, y: 400 }
   },
   {
     id: 'single_attention_head',
@@ -160,31 +165,31 @@ export const transformerNodes: Node<NodeDataType>[] = [
     id: 'add_norm_1',
     type: 'mindmap',
     data: {
-      label: 'Add & Norm (1)',
-      content: 'Residual Connection:\n$x + MultiHead(x)$\nHelps gradient flow in deep networks.\n\nLayer Normalization:\n$LayerNorm(x + MultiHead(x))$\nStabilizes training.',
+      label: 'Add & Norm 1',
+      content: 'Layer normalization after residual connection: $LayerNorm(x + Sublayer(x))$',
       status: 'locked'
     },
-    position: { x: 100, y: -400 }
+    position: { x: -200, y: 400 }
   },
   {
     id: 'feed_forward',
     type: 'mindmap',
     data: {
-      label: 'Feed-Forward Network',
-      content: 'Applied position-wise (same network, different inputs per token).\nStructure: Two linear layers with ReLU.\n$FFN(x) = \\max(0, xW_1 + b_1)W_2 + b_2$\nFirst layer expands (e.g., to 2048 dims), second reduces back.',
+      label: 'Feed Forward',
+      content: 'Two linear transformations with ReLU: $FFN(x) = max(0, xW_1 + b_1)W_2 + b_2$',
       status: 'locked'
     },
-    position: { x: 200, y: -400 }
+    position: { x: 0, y: 400 }
   },
   {
     id: 'add_norm_2',
     type: 'mindmap',
     data: {
-      label: 'Add & Norm (2)',
-      content: 'Residual: $x + FFN(x)$.\nLayerNorm: $LayerNorm(x + FFN(x))$.\nOutput: Enhanced representation passed to next layer or decoder.',
+      label: 'Add & Norm 2',
+      content: 'Second layer normalization: $LayerNorm(x + FFN(x))$',
       status: 'locked'
     },
-    position: { x: 300, y: -400 }
+    position: { x: 200, y: 400 }
   },
   
   // Section 3: Decoder
@@ -193,40 +198,40 @@ export const transformerNodes: Node<NodeDataType>[] = [
     type: 'mindmap',
     data: {
       label: 'Decoder',
-      content: 'Generates output sequence autoregressively, attending to both itself and encoder output. Also $N$ layers.',
+      content: 'The decoder generates output sequences using both self-attention and encoder attention.',
       status: 'locked'
     },
-    position: { x: 100, y: 0 }
+    position: { x: 200, y: 100 }
   },
   {
     id: 'decoder_layer',
     type: 'mindmap',
     data: {
       label: 'Decoder Layer',
-      content: 'Input: Target sequence (shifted right) with embeddings and positional encodings.',
+      content: 'Similar to encoder layer but with an additional cross-attention sub-layer.',
       status: 'locked'
     },
-    position: { x: 300, y: -300 }
+    position: { x: 200, y: 300 }
   },
   {
     id: 'masked_attention',
     type: 'mindmap',
     data: {
-      label: 'Masked Multi-Head Self-Attention',
-      content: 'Same as encoder\'s self-attention but masked.\nMasking: Prevents attending to future tokens (causal attention).\nPurpose: Ensures autoregressive property (predict next token based on past only).',
+      label: 'Masked Attention',
+      content: 'Prevents attending to future tokens: $Mask(QK^T) = \\begin{cases} -\\infty & \\text{if mask}_{ij} = 0 \\\\ (QK^T)_{ij} & \\text{otherwise} \\end{cases}$',
       status: 'locked'
     },
-    position: { x: 400, y: -400 }
+    position: { x: 400, y: 400 }
   },
   {
     id: 'cross_attention',
     type: 'mindmap',
     data: {
-      label: 'Cross-Attention',
-      content: 'Q: From masked self-attention output.\nK, V: From encoder\'s final output.\nComputes cross-attention between target and source sequences.\nPurpose: Aligns target with source (e.g., translation).',
+      label: 'Cross Attention',
+      content: 'Attends to encoder outputs: $CrossAttention(Q,K,V) = softmax(\\frac{QK^T}{\\sqrt{d_k}})V$ where K,V from encoder.',
       status: 'locked'
     },
-    position: { x: 500, y: -400 }
+    position: { x: 600, y: 400 }
   },
   
   // Section 4: Output
@@ -235,30 +240,30 @@ export const transformerNodes: Node<NodeDataType>[] = [
     type: 'mindmap',
     data: {
       label: 'Output',
-      content: 'Transforms the decoder (or encoder) output into final predictions.',
+      content: 'The final output processing stage.',
       status: 'locked'
     },
-    position: { x: 300, y: 0 }
+    position: { x: 400, y: 100 }
   },
   {
     id: 'linear_layer',
     type: 'mindmap',
     data: {
       label: 'Linear Layer',
-      content: 'Projects to vocabulary size:\n$Output = XW + b$\nShape: $[sequence\\_length, vocab\\_size]$.',
+      content: 'Projects to vocabulary size: $O = XW + b$ where $W \\in \\mathbb{R}^{d_{model} \\times |V|}$',
       status: 'locked'
     },
-    position: { x: 600, y: -300 }
+    position: { x: 400, y: 200 }
   },
   {
     id: 'softmax',
     type: 'mindmap',
     data: {
       label: 'Softmax',
-      content: 'Converts logits to probabilities per token:\n$P(token_i) = \\frac{e^{z_i}}{\\sum_j e^{z_j}}$',
+      content: 'Converts logits to probabilities: $p_i = \\frac{e^{x_i}}{\\sum_j e^{x_j}}$',
       status: 'locked'
     },
-    position: { x: 700, y: -300 }
+    position: { x: 600, y: 200 }
   },
   {
     id: 'task_heads',
@@ -409,7 +414,7 @@ export const transformerEdges: Edge[] = [
   
   // Decoder connections
   { id: 'e-decoder-layer', source: 'decoder', target: 'decoder_layer', type: 'mindmap' },
-  { id: 'e-declayer-masked', source: 'decoder_layer', target: 'masked_attention', type: 'mindmap' },
+  { id: 'e-declayer-mask', source: 'decoder_layer', target: 'masked_attention', type: 'mindmap' },
   { id: 'e-declayer-cross', source: 'decoder_layer', target: 'cross_attention', type: 'mindmap' },
   
   // Output connections

@@ -1,142 +1,88 @@
 import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import LatexContent from '@/components/ui/latex-content';
+import { Input } from '@/components/ui/input';
 import { Question } from '@/lib/api';
-import { X } from 'lucide-react';
+import LatexContent from '@/components/ui/latex-content';
 
 interface NodeDetailModalProps {
-  // nodeId is needed for integration with future features
-  nodeId: string; 
+  nodeId: string;
   label: string;
   content: string;
   questions: Question[];
   isOpen: boolean;
   onClose: () => void;
-  onSubmitAnswer: (questionId: string, answer: string) => Promise<void>;
+  onSubmitAnswer: (questionId: string, answer: string) => void;
 }
 
 const NodeDetailModal: React.FC<NodeDetailModalProps> = ({
-  nodeId: _, // Used for future integration
+  nodeId,
   label,
   content,
   questions,
   isOpen,
   onClose,
-  onSubmitAnswer
+  onSubmitAnswer,
 }) => {
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [activeQuestion, setActiveQuestion] = useState<number>(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!isOpen) return null;
+  const [answers, setAnswers] = useState<{ [key: string]: string }>({});
 
   const handleAnswerChange = (questionId: string, value: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: value
-    }));
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
 
-  const handleSubmit = async () => {
-    const currentQuestion = questions[activeQuestion];
-    if (!currentQuestion || !answers[currentQuestion.id]) return;
-
-    setIsSubmitting(true);
-    
-    try {
-      await onSubmitAnswer(currentQuestion.id, answers[currentQuestion.id]);
-      
-      // Move to next question if available
-      if (activeQuestion < questions.length - 1) {
-        setActiveQuestion(activeQuestion + 1);
-      }
-    } catch (error) {
-      console.error('Error submitting answer:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleSubmit = (questionId: string) => {
+    const answer = answers[questionId] || '';
+    onSubmitAnswer(questionId, answer);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-xl font-semibold">{label}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="overflow-y-auto p-6 flex-grow">
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2">Content</h3>
-            <div className="bg-gray-50 p-4 rounded">
-              <LatexContent content={content} />
-            </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{label}</DialogTitle>
+        </DialogHeader>
+        
+        <div className="mt-4 space-y-4">
+          <div className="prose dark:prose-invert">
+            <LatexContent content={content} />
           </div>
-
-          {questions.length > 0 && (
-            <div>
-              <h3 className="text-lg font-medium mb-2">Questions</h3>
-              
-              {/* Question Navigation */}
-              <div className="flex mb-4 gap-2">
-                {questions.map((_, index) => (
-                  <Button
-                    key={index}
-                    variant={index === activeQuestion ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setActiveQuestion(index)}
-                  >
-                    {index + 1}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Active Question */}
-              <div className="bg-gray-50 p-4 rounded mb-4">
-                <p className="font-medium mb-2">{questions[activeQuestion]?.text}</p>
+          
+          <div className="space-y-6">
+            {questions.map((question) => (
+              <div key={question.id} className="space-y-2">
+                <div className="font-medium">
+                  <LatexContent content={question.text} />
+                </div>
                 
-                <textarea
-                  className="w-full border rounded p-2 h-32"
-                  placeholder="Type your answer here..."
-                  value={answers[questions[activeQuestion]?.id] || ''}
-                  onChange={(e) => handleAnswerChange(questions[activeQuestion]?.id, e.target.value)}
-                  disabled={isSubmitting || questions[activeQuestion]?.status === 'passed'}
-                />
-
-                {/* Feedback if question was answered */}
-                {questions[activeQuestion]?.feedback && (
-                  <div className={`mt-4 p-3 rounded ${
-                    questions[activeQuestion]?.status === 'passed' 
-                      ? 'bg-green-50 border border-green-200' 
-                      : 'bg-red-50 border border-red-200'
+                <div className="flex gap-2">
+                  <Input
+                    value={answers[question.id] || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleAnswerChange(question.id, e.target.value)}
+                    placeholder="Enter your answer..."
+                  />
+                  <Button onClick={() => handleSubmit(question.id)}>
+                    Submit
+                  </Button>
+                </div>
+                
+                {question.status && (
+                  <div className={`text-sm ${
+                    question.status === 'passed' ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    <p className="font-medium">{
-                      questions[activeQuestion]?.status === 'passed' ? 'Correct!' : 'Try again'
-                    }</p>
-                    <p className="text-sm mt-1">{questions[activeQuestion]?.feedback}</p>
+                    {question.feedback && <LatexContent content={question.feedback} />}
                   </div>
                 )}
               </div>
-            
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={
-                    isSubmitting || 
-                    !answers[questions[activeQuestion]?.id] ||
-                    questions[activeQuestion]?.status === 'passed'
-                  }
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Answer'}
-                </Button>
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
