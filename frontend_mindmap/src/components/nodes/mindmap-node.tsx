@@ -40,7 +40,8 @@ const MindMapNode = memo(({
   const [expanded, setExpanded] = useState(false);
   const nodeId = useNodeId();
 
-  const toggleExpand = () => {
+  const toggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setExpanded(!expanded);
   };
 
@@ -52,28 +53,24 @@ const MindMapNode = memo(({
   };
 
   const handleView = (e: React.MouseEvent) => {
-    console.log('handleView called for node:', nodeId);
     e.stopPropagation();
-    // Try to get onView from props first, then from data
-    const viewHandler = onView || (data && data.onView);
-    if (viewHandler && nodeId) {
-      console.log('Calling view handler for node:', nodeId);
-      viewHandler(nodeId);
-    } else {
-      console.warn('No view handler available for node:', nodeId);
+    if (nodeId) {
+      if (onView) {
+        onView(nodeId);
+      } else if (data && data.onView) {
+        data.onView(nodeId);
+      }
     }
   };
   
   const handleQuiz = (e: React.MouseEvent) => {
-    console.log('handleQuiz called for node:', nodeId);
     e.stopPropagation();
-    // Try to get onQuiz from props first, then from data
-    const quizHandler = onQuiz || (data && data.onQuiz);
-    if (quizHandler && nodeId) {
-      console.log('Calling quiz handler for node:', nodeId);
-      quizHandler(nodeId);
-    } else {
-      console.warn('No quiz handler available for node:', nodeId);
+    if (nodeId) {
+      if (onQuiz) {
+        onQuiz(nodeId);
+      } else if (data && data.onQuiz) {
+        data.onQuiz(nodeId);
+      }
     }
   };
 
@@ -158,6 +155,7 @@ const MindMapNode = memo(({
               onClick={handleQuiz}
               className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200"
             >
+              <Brain className="h-4 w-4 mr-1" />
               Quiz
             </Button>
           </div>
@@ -176,7 +174,7 @@ const MindMapNode = memo(({
       />
       <BaseNode 
         selected={selected} 
-        status={data && typeof data.status === 'string' ? data.status : undefined}
+        status={data && data.status ? data.status : 'not_started'}
         isParent={data && data.isParent === true}>
         <NodeHeader className="-mx-0 -mt-0 border-b">
           <NodeHeaderIcon>
