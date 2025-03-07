@@ -645,7 +645,9 @@ const MindMap: React.FC = () => {
     if (!selectedNode) return;
     
     try {
+      console.log(`Submitting answer for question ${questionId} in node ${selectedNode}`);
       const answerResponse = await submitAnswer(sessionId, selectedNode, questionId, answer);
+      console.log('Answer response:', answerResponse);
       
       // Update the questions array with feedback
       setNodeQuestions(questions => 
@@ -655,7 +657,9 @@ const MindMap: React.FC = () => {
                 ...q, 
                 status: answerResponse.passed ? 'passed' : 'failed',
                 feedback: answerResponse.feedback,
-                grade: answerResponse.grade 
+                grade: answerResponse.grade,
+                last_answer: answer,
+                attempts: (q.attempts || 0) + 1
               } 
             : q
         )
@@ -663,25 +667,34 @@ const MindMap: React.FC = () => {
       
       // If all questions are passed, update node status to completed
       if (answerResponse.all_passed) {
-        // Update both full nodes and visible nodes
-        setFullNodes(nodes => 
-          nodes.map(node => 
-            node.id === selectedNode 
-              ? { ...node, data: { ...node.data, status: 'completed' } } 
-              : node
-          )
-        );
+        console.log(`All questions passed for node ${selectedNode}. Marking as completed.`);
         
-        setNodes(nodes => 
-          nodes.map(node => 
-            node.id === selectedNode 
-              ? { ...node, data: { ...node.data, status: 'completed' } } 
-              : node
-          )
-        );
-        
-        // Check which nodes can be unlocked now
-        await refreshProgress();
+        try {
+          // First update the status with the backend
+          await updateNodeStatus(sessionId, selectedNode, 'completed');
+          
+          // Then update local state
+          setFullNodes(nodes => 
+            nodes.map(node => 
+              node.id === selectedNode 
+                ? { ...node, data: { ...node.data, status: 'completed' } } 
+                : node
+            )
+          );
+          
+          setNodes(nodes => 
+            nodes.map(node => 
+              node.id === selectedNode 
+                ? { ...node, data: { ...node.data, status: 'completed' } } 
+                : node
+            )
+          );
+          
+          // Refresh progress data to update unlockable nodes
+          await refreshProgress();
+        } catch (statusError) {
+          console.error('Error updating node status:', statusError);
+        }
       }
     } catch (error) {
       console.error('Error submitting answer:', error);
@@ -690,21 +703,30 @@ const MindMap: React.FC = () => {
 
   const refreshProgress = async () => {
     try {
+      console.log(`Refreshing progress for session: ${sessionId}`);
       const progressData = await getProgress(sessionId);
+      console.log('Progress data received:', progressData);
+      
+      if (!progressData || !progressData.nodes) {
+        console.warn('Invalid progress data received:', progressData);
+        return;
+      }
       
       // Update full nodes with current progress status
       setFullNodes(nodes => 
         nodes.map(node => {
           const nodeProgress = progressData.nodes[node.id];
-          return nodeProgress 
-            ? { 
-                ...node, 
-                data: { 
-                  ...node.data, 
-                  status: nodeProgress.status 
-                } 
+          if (nodeProgress) {
+            console.log(`Node ${node.id} progress:`, nodeProgress.status);
+            return { 
+              ...node, 
+              data: { 
+                ...node.data, 
+                status: nodeProgress.status 
               } 
-            : node;
+            };
+          }
+          return node;
         })
       );
       
@@ -712,15 +734,16 @@ const MindMap: React.FC = () => {
       setNodes(nodes => 
         nodes.map(node => {
           const nodeProgress = progressData.nodes[node.id];
-          return nodeProgress 
-            ? { 
-                ...node, 
-                data: { 
-                  ...node.data, 
-                  status: nodeProgress.status 
-                } 
+          if (nodeProgress) {
+            return { 
+              ...node, 
+              data: { 
+                ...node.data, 
+                status: nodeProgress.status 
               } 
-            : node;
+            };
+          }
+          return node;
         })
       );
       

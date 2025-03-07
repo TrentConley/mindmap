@@ -4,12 +4,13 @@ import { Node, Edge } from '@xyflow/react';
 const API_URL = '/api';
 
 // Flag to determine if the backend is available
-let backendAvailable = true;
+let backendAvailable = false;
 
 // Helper function to detect if backend is available
 const checkBackendAvailability = async () => {
   try {
-    await axios.get(`${API_URL}/health`, { timeout: 1000 });
+    await axios.get('/', { timeout: 2000 });
+    console.log('Backend is available! Using real API.');
     backendAvailable = true;
   } catch (error) {
     console.warn('Backend not available, using mock API responses');
@@ -64,11 +65,38 @@ const mockSessionData: Record<string, any> = {};
 export async function initializeSession(sessionId: string, nodes: Node<NodeData>[], edges: Edge[]) {
   if (backendAvailable) {
     try {
+      // Prepare the data in the format the backend expects
+      const formattedNodes = nodes.map(node => ({
+        id: node.id,
+        data: {
+          label: node.data.label,
+          content: node.data.content,
+          status: node.data.status || 'locked'
+        },
+        position: node.position || { x: 0, y: 0 },
+        type: node.type || 'mindmap'
+      }));
+
+      const formattedEdges = edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type || 'mindmap'
+      }));
+
+      console.log('Initializing session with backend:', {
+        session_id: sessionId,
+        nodeCount: formattedNodes.length,
+        edgeCount: formattedEdges.length
+      });
+
       const response = await axios.post(`${API_URL}/session/init`, {
         session_id: sessionId,
-        nodes,
-        edges
+        nodes: formattedNodes,
+        edges: formattedEdges
       });
+
+      console.log('Session initialized successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to initialize session:', error);
@@ -94,12 +122,14 @@ export async function initializeSession(sessionId: string, nodes: Node<NodeData>
 export async function createMindMap(sessionId: string, topic: string, maxNodes = 15, maxDepth = 3) {
   if (backendAvailable) {
     try {
+      console.log(`Creating mindmap for topic: ${topic} with sessionId: ${sessionId}`);
       const response = await axios.post<MindMapResponse>(`${API_URL}/mindmap/create`, {
         session_id: sessionId,
         topic,
         max_nodes: maxNodes,
         max_depth: maxDepth
       });
+      console.log('Mindmap created successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to create mindmap:', error);
@@ -143,6 +173,7 @@ export async function createMindMap(sessionId: string, topic: string, maxNodes =
 export async function generateQuestions(sessionId: string, nodeId: string, nodeContent: string, nodeLabel: string) {
   if (backendAvailable) {
     try {
+      console.log(`Generating questions for node: ${nodeId} - ${nodeLabel}`);
       const response = await axios.post(`${API_URL}/questions/generate`, {
         session_id: sessionId,
         node_id: nodeId,
@@ -151,6 +182,7 @@ export async function generateQuestions(sessionId: string, nodeId: string, nodeC
         parent_nodes: [],
         child_nodes: []
       });
+      console.log('Questions generated successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to generate questions:', error);
@@ -191,12 +223,14 @@ export async function generateQuestions(sessionId: string, nodeId: string, nodeC
 export async function submitAnswer(sessionId: string, nodeId: string, questionId: string, answer: string) {
   if (backendAvailable) {
     try {
+      console.log(`Submitting answer for question: ${questionId} in node: ${nodeId}`);
       const response = await axios.post(`${API_URL}/questions/answer`, {
         session_id: sessionId,
         node_id: nodeId,
         question_id: questionId,
         answer
       });
+      console.log('Answer submitted successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to submit answer:', error);
@@ -254,10 +288,12 @@ export async function submitAnswer(sessionId: string, nodeId: string, questionId
 export async function checkNodeUnlockable(sessionId: string, nodeId: string) {
   if (backendAvailable) {
     try {
+      console.log(`Checking if node ${nodeId} is unlockable`);
       const response = await axios.post(`${API_URL}/nodes/check-unlockable`, {
         session_id: sessionId,
         node_id: nodeId
       });
+      console.log('Node unlockable check result:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to check if node is unlockable:', error);
@@ -274,11 +310,13 @@ export async function checkNodeUnlockable(sessionId: string, nodeId: string) {
 export async function updateNodeStatus(sessionId: string, nodeId: string, status: string) {
   if (backendAvailable) {
     try {
+      console.log(`Updating node ${nodeId} status to: ${status}`);
       const response = await axios.post(`${API_URL}/nodes/update-status`, {
         session_id: sessionId,
         node_id: nodeId,
         status
       });
+      console.log('Node status updated:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to update node status:', error);
@@ -310,9 +348,11 @@ export async function updateNodeStatus(sessionId: string, nodeId: string, status
 export async function getSessionData(sessionId: string) {
   if (backendAvailable) {
     try {
+      console.log(`Getting session data for: ${sessionId}`);
       const response = await axios.get(`${API_URL}/session/data`, {
         params: { session_id: sessionId }
       });
+      console.log('Session data retrieved:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to get session data:', error);
@@ -326,9 +366,11 @@ export async function getSessionData(sessionId: string) {
 export async function getNodeData(sessionId: string, nodeId: string) {
   if (backendAvailable) {
     try {
+      console.log(`Getting data for node: ${nodeId}`);
       const response = await axios.get(`${API_URL}/nodes/${nodeId}`, {
         params: { session_id: sessionId }
       });
+      console.log('Node data retrieved:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to get node data:', error);
@@ -342,9 +384,11 @@ export async function getNodeData(sessionId: string, nodeId: string) {
 export async function getProgress(sessionId: string) {
   if (backendAvailable) {
     try {
+      console.log(`Getting progress for session: ${sessionId}`);
       const response = await axios.get(`${API_URL}/progress`, {
         params: { session_id: sessionId }
       });
+      console.log('Progress retrieved:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to get progress:', error);

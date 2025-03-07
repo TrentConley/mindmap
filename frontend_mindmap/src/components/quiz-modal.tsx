@@ -28,13 +28,18 @@ const QuizModal: React.FC<QuizModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
-    // Initialize answers state with empty strings for each question
+    // Initialize answers state with empty strings for each question or last_answer if available
     const initialAnswers: Record<string, string> = {};
     questions.forEach(q => {
-      initialAnswers[q.id] = '';
+      initialAnswers[q.id] = q.last_answer || '';
     });
     setAnswers(initialAnswers);
   }, [questions]);
+
+  // Reset active question when questions change
+  useEffect(() => {
+    setActiveQuestion(0);
+  }, [nodeId]);
 
   if (!isOpen) return null;
 
@@ -75,6 +80,11 @@ const QuizModal: React.FC<QuizModalProps> = ({
     return null;
   };
 
+  // Check if the current question has been answered previously
+  const isAnswered = (question: QuestionType) => {
+    return question.status === 'passed' || question.status === 'failed';
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
@@ -102,7 +112,7 @@ const QuizModal: React.FC<QuizModalProps> = ({
             />
           </div>
 
-          {currentQuestion?.feedback && (
+          {isAnswered(currentQuestion) && currentQuestion?.feedback && (
             <div className={`p-4 rounded-lg mb-6 ${
               currentQuestion.status === 'passed' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
             }`}>
@@ -118,7 +128,7 @@ const QuizModal: React.FC<QuizModalProps> = ({
         </div>
 
         <div className="flex items-center justify-between p-4 border-t bg-gray-50">
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             {questions.map((q, idx) => (
               <button
                 key={q.id}

@@ -34,7 +34,7 @@ app = FastAPI(title="Mind Map Learning API")
 # Configure CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8000", "*"],  # Add your frontend URL
+    allow_origins=["http://localhost:3000", "http://localhost:8000", "*", "http://localhost:5173"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -241,6 +241,10 @@ async def generate_mindmap_with_claude(topic: str, max_nodes: int = 15, max_dept
 # API Routes
 @app.get("/")
 async def root():
+    return {"message": "Mind Map Learning API is running"}
+
+@app.get("/api")
+async def api_root():
     return {"message": "Mind Map Learning API is running"}
 
 @app.post("/api/session/init")
