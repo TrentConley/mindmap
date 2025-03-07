@@ -264,6 +264,18 @@ async def initialize_session(graph_data: GraphDataRequest) -> Dict[str, Any]:
                 "content": node.get("data", {}).get("content", ""),
                 "position": node.get("position", {})
             }
+            
+            # Initialize the node in the nodes dictionary too
+            # This is needed for status updates and progress tracking
+            if node_id not in session["nodes"]:
+                session["nodes"][node_id] = {
+                    "node_id": node_id,
+                    "status": node.get("data", {}).get("status", "locked"),
+                    "questions": [],
+                    "unlockable": False,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
+                }
         
         session["graph_edges"] = graph_data.edges
         
