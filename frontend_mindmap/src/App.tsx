@@ -9,7 +9,14 @@ function App() {
     // Check if backend is available on component mount
     const checkBackendStatus = async () => {
       try {
-        const response = await axios.get('/api', { timeout: 3000 });
+        // For production, use the full path if needed
+        const isProd = import.meta.env.PROD;
+        const endpoint = isProd 
+          ? (import.meta.env.VITE_BACKEND_URL || 'https://api.themindmap.ai') + '/api'
+          : '/api'; // In development, this gets proxied by Vite
+
+        console.log('Checking backend status at:', endpoint);
+        const response = await axios.get(endpoint, { timeout: 3000 });
         console.log('Backend health check response:', response.data);
         setBackendStatus('available');
       } catch (error) {

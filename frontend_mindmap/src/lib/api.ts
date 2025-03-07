@@ -2,10 +2,31 @@ import axios from 'axios';
 import { Node, Edge } from '@xyflow/react';
 
 // Define the base URL for the API
-// For local development, use the backend server URL
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-console.log('BACKEND_URL:', BACKEND_URL);
-const API_URL = `${BACKEND_URL}/api`;
+// Check if we're in production mode and if we should use a relative or absolute URL
+const isProd = import.meta.env.PROD;
+const PRODUCTION_URL = 'https://api.themindmap.ai';
+
+// In production, we'll use the production URL; in development, the proxy handles routing
+let baseUrl = '';
+let apiPath = '/api';
+
+// If we have an environment variable set, use that (useful for testing different backends)
+if (import.meta.env.VITE_BACKEND_URL) {
+  baseUrl = import.meta.env.VITE_BACKEND_URL;
+  console.log('Using environment BACKEND_URL:', baseUrl);
+} 
+// Otherwise use production URL in production, and relative path in development
+else if (isProd) {
+  baseUrl = PRODUCTION_URL;
+  console.log('Using production backend URL:', baseUrl);
+} else {
+  // In development, the proxy in vite.config.ts will handle the routing
+  console.log('Using development proxy for API calls');
+}
+
+// Construct the full API URL
+const API_URL = `${baseUrl}${apiPath}`;
+console.log('Final API_URL:', API_URL);
 
 // Type definitions
 export interface Question {
@@ -71,7 +92,7 @@ export async function initializeSession(sessionId: string, nodes: Node<NodeData>
       nodeCount: formattedNodes.length,
       edgeCount: formattedEdges.length
     });
-
+    console.log('API_URL:', API_URL);
     const response = await axios.post(`${API_URL}/session/init`, {
       session_id: sessionId,
       nodes: formattedNodes,
