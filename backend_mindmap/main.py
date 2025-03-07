@@ -31,11 +31,11 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(title="Mind Map Learning API")
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS")
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
 # Configure CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8000", "http://localhost:5173", allowed_origins],
+    allow_origins=["http://localhost:3000", "http://localhost:8000", "http://localhost:5173", allowed_origins, "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
