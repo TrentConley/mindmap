@@ -4,6 +4,7 @@ import { Node, Edge } from '@xyflow/react';
 // Define the base URL for the API
 // For local development, use the backend server URL
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+console.log('BACKEND_URL:', BACKEND_URL);
 const API_URL = `${BACKEND_URL}/api`;
 
 // Type definitions
