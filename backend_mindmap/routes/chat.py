@@ -128,27 +128,32 @@ async def send_chat_message(
         parent_nodes = []
         child_nodes = []
         
-        # Get parent nodes
-        if node_id in session_data.relationships.parents:
-            parent_ids = session_data.relationships.parents[node_id]
-            for parent_id in parent_ids:
-                if parent_id in session_data.graph_nodes:
-                    parent = session_data.graph_nodes[parent_id]
-                    parent_nodes.append({
-                        "label": parent.label,
-                        "content": parent.content
-                    })
-        
-        # Get child nodes
-        if node_id in session_data.relationships.children:
-            child_ids = session_data.relationships.children[node_id]
-            for child_id in child_ids:
-                if child_id in session_data.graph_nodes:
-                    child = session_data.graph_nodes[child_id]
-                    child_nodes.append({
-                        "label": child.label,
-                        "content": child.content
-                    })
+        try:
+            # Get parent nodes
+            if hasattr(session_data, 'relationships'):
+                if hasattr(session_data.relationships, 'parents') and node_id in session_data.relationships.parents:
+                    parent_ids = session_data.relationships.parents[node_id]
+                    for parent_id in parent_ids:
+                        if parent_id in session_data.graph_nodes:
+                            parent = session_data.graph_nodes[parent_id]
+                            parent_nodes.append({
+                                "label": parent.label,
+                                "content": parent.content
+                            })
+            
+                # Get child nodes
+                if hasattr(session_data.relationships, 'children') and node_id in session_data.relationships.children:
+                    child_ids = session_data.relationships.children[node_id]
+                    for child_id in child_ids:
+                        if child_id in session_data.graph_nodes:
+                            child = session_data.graph_nodes[child_id]
+                            child_nodes.append({
+                                "label": child.label,
+                                "content": child.content
+                            })
+        except Exception as rel_error:
+            logger.warning(f"Error accessing relationships for node {node_id}: {str(rel_error)}")
+            # Continue without relationship data
         
         # Format message history for Claude
         message_history = []
