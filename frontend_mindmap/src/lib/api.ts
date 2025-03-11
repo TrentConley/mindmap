@@ -174,7 +174,7 @@ export async function submitAnswer(sessionId: string, nodeId: string, questionId
 export async function checkNodeUnlockable(sessionId: string, nodeId: string) {
   try {
     console.log(`Checking if node ${nodeId} is unlockable`);
-    const response = await axios.post(`${API_URL}/nodes/check-unlockable`, {
+    const response = await axios.post(`${API_URL}/questions/check-unlockable`, {
       session_id: sessionId,
       node_id: nodeId
     });
@@ -188,7 +188,7 @@ export async function checkNodeUnlockable(sessionId: string, nodeId: string) {
 export async function updateNodeStatus(sessionId: string, nodeId: string, status: string) {
   try {
     console.log(`Updating node ${nodeId} status to: ${status}`);
-    const response = await axios.post(`${API_URL}/nodes/update-status`, {
+    const response = await axios.post(`${API_URL}/mindmap/nodes/update-status`, {
       session_id: sessionId,
       node_id: nodeId,
       status
@@ -216,7 +216,7 @@ export async function getSessionData(sessionId: string) {
 export async function getNodeData(sessionId: string, nodeId: string) {
   try {
     console.log(`Getting data for node: ${nodeId}`);
-    const response = await axios.get(`${API_URL}/nodes/${nodeId}`, {
+    const response = await axios.get(`${API_URL}/mindmap/nodes/${nodeId}`, {
       params: { session_id: sessionId }
     });
     console.log('Node data retrieved:', response.data);
