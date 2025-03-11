@@ -122,6 +122,21 @@ export async function createMindMap(sessionId: string, topic: string, maxNodes =
   }
 }
 
+export async function generateChildNodes(sessionId: string, nodeId: string, maxChildren = 4) {
+  try {
+    console.log(`Generating child nodes for node: ${nodeId} in session: ${sessionId}`);
+    const response = await axios.post<MindMapResponse>(`${API_URL}/mindmap/generate-child-nodes`, {
+      session_id: sessionId,
+      node_id: nodeId,
+      max_children: maxChildren
+    });
+    console.log('Child nodes generated successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'generateChildNodes');
+  }
+}
+
 export async function generateQuestions(sessionId: string, nodeId: string, nodeContent: string, nodeLabel: string) {
   try {
     console.log(`Generating questions for node: ${nodeId} - ${nodeLabel}`);

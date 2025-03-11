@@ -133,8 +133,14 @@ class CreateMindMapRequest(BaseModel):
     """Request to create a new mindmap using Anthropic."""
     session_id: str
     topic: str
-    max_nodes: Optional[int] = Field(default=15, ge=5, le=50)
     max_depth: Optional[int] = Field(default=3, ge=1, le=5)
+
+
+class GenerateChildNodesRequest(BaseModel):
+    """Request to generate child nodes for a specific node."""
+    session_id: str
+    node_id: str
+    max_children: Optional[int] = Field(default=4, ge=2, le=6)
 
 
 class MindMapNode(BaseModel):

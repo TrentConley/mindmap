@@ -20,7 +20,7 @@ import NodeDetailModal from '@/components/node-detail-modal';
 import TopicSelector from '@/components/topic-selector';
 import QuizModal from '@/components/quiz-modal';
 import { Button } from '@/components/ui/button';
-import { Question, generateQuestions, submitAnswer, getProgress, createMindMap, initializeSession, updateNodeStatus } from '@/lib/api';
+import { Question, generateQuestions, submitAnswer, getProgress, createMindMap, initializeSession, updateNodeStatus, generateChildNodes } from '@/lib/api';
 import { generateSessionId } from '@/lib/utils';
 import { transformerMindMap } from '@/data/transformer-mindmap';
 import PathNavigator from '@/components/path-navigator';
@@ -78,6 +78,7 @@ const MindMap: React.FC = () => {
   const [lastClickTime, setLastClickTime] = useState<number>(0);
   const [nodePath, setNodePath] = useState<Array<{id: string, label: string}>>([]);
   const [quizLoading, setQuizLoading] = useState(false);
+  const [generatingChildren, setGeneratingChildren] = useState(false);
   
   // Initialize session when component mounts
   useEffect(() => {
@@ -481,6 +482,54 @@ const MindMap: React.FC = () => {
       console.warn(`Node ${nodeId} not found in fullNodes`);
     }
   }, [fullNodes, focusOnNode, sessionId, setSelectedNode]);
+  
+  // Handle generating child nodes
+  const handleGenerateChildNodes = useCallback(async (nodeId: string) => {
+    console.log(`Generating child nodes for: ${nodeId}`);
+    
+    // Find the node in our nodes array
+    const node = fullNodes.find(n => n.id === nodeId);
+    if (!node) {
+      console.warn(`Node ${nodeId} not found in fullNodes`);
+      return;
+    }
+    
+    // Check if node is completed (we should only generate children for completed nodes)
+    if (node.data?.status !== 'completed') {
+      console.warn(`Cannot generate children for non-completed node: ${nodeId}`);
+      return;
+    }
+    
+    // Set loading state
+    setGeneratingChildren(true);
+    
+    try {
+      // Call the API to generate child nodes
+      const result = await generateChildNodes(sessionId, nodeId);
+      
+      if (!result) {
+        console.error('No result returned from generateChildNodes');
+        return;
+      }
+      
+      console.log('Generated child nodes:', result);
+      
+      // Add the new nodes and edges to our full nodes and edges
+      setFullNodes(prevNodes => [...prevNodes, ...result.nodes]);
+      setFullEdges(prevEdges => [...prevEdges, ...result.edges]);
+      
+      // Refresh the current view to show the new nodes
+      if (focusedNode === nodeId) {
+        // Re-focus on this node to update the view
+        focusOnNode(nodeId);
+      }
+      
+    } catch (error) {
+      console.error('Error generating child nodes:', error);
+    } finally {
+      setGeneratingChildren(false);
+    }
+  }, [fullNodes, fullEdges, sessionId, focusedNode, focusOnNode]);
 
   // Create nodeTypes with the view and quiz handlers - memoized to prevent recreation on each render
   const nodeTypesWithHandlers = useMemo(() => ({
@@ -489,9 +538,10 @@ const MindMap: React.FC = () => {
         {...props}
         onView={handleViewNode}
         onQuiz={handleQuizNode}
+        onGenerateChildren={handleGenerateChildNodes}
       />
     )
-  }), [handleViewNode, handleQuizNode]);
+  }), [handleViewNode, handleQuizNode, handleGenerateChildNodes]);
 
   // Update the node processing to remove onView from data
   const processNodes = useCallback((inputNodes: any[]) => {

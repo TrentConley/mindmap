@@ -7,7 +7,7 @@ import {
   NodeHeaderActions,
   NodeHeaderIcon,
 } from '@/components/node-header';
-import { Brain, Unlock, Lock, Eye } from 'lucide-react';
+import { Brain, Unlock, Lock, Eye, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LatexContent from '@/components/ui/latex-content';
 import { truncateText } from '@/lib/utils';
@@ -17,6 +17,7 @@ interface MindMapNodeProps extends NodeProps {
   onUnlock?: (nodeId: string) => void;
   onView?: (nodeId: string) => void;
   onQuiz?: (nodeId: string) => void;
+  onGenerateChildren?: (nodeId: string) => void;
   isLocked?: boolean;
   data: {
     label: string;
@@ -25,6 +26,7 @@ interface MindMapNodeProps extends NodeProps {
     isParent?: boolean;
     onView?: (nodeId: string) => void;
     onQuiz?: (nodeId: string) => void;
+    onGenerateChildren?: (nodeId: string) => void;
   };
 }
 
@@ -35,6 +37,7 @@ const MindMapNode = memo(({
   onUnlock,
   onView,
   onQuiz,
+  onGenerateChildren,
   isLocked = false
 }: MindMapNodeProps) => {
   const [expanded, setExpanded] = useState(false);
@@ -70,6 +73,17 @@ const MindMapNode = memo(({
         onQuiz(nodeId);
       } else if (data && data.onQuiz) {
         data.onQuiz(nodeId);
+      }
+    }
+  };
+  
+  const handleGenerateChildren = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (nodeId) {
+      if (onGenerateChildren) {
+        onGenerateChildren(nodeId);
+      } else if (data && data.onGenerateChildren) {
+        data.onGenerateChildren(nodeId);
       }
     }
   };
@@ -131,34 +145,51 @@ const MindMapNode = memo(({
           }
         </div>
 
-        <div className="px-3 pb-3 flex justify-between mt-auto">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={toggleExpand}
-          >
-            {expanded ? 'Collapse' : 'Expand'}
-          </Button>
-          
-          <div className="flex gap-1">
+        <div className="px-3 pb-3 mt-auto space-y-2">
+          <div className="flex justify-between">
             <Button 
               variant="outline" 
-              size="sm"
-              onClick={handleView}
+              size="sm" 
+              onClick={toggleExpand}
             >
-              <Eye className="h-4 w-4 mr-1" />
-              View
+              {expanded ? 'Collapse' : 'Expand'}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleQuiz}
-              className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200"
-            >
-              <Brain className="h-4 w-4 mr-1" />
-              Quiz
-            </Button>
+            
+            <div className="flex gap-1">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleView}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                View
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleQuiz}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200"
+              >
+                <Brain className="h-4 w-4 mr-1" />
+                Quiz
+              </Button>
+            </div>
           </div>
+          
+          {/* Generate Children button - only show for completed nodes */}
+          {data.status === 'completed' && (
+            <div className="flex justify-center w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateChildren}
+                className="w-full bg-green-50 hover:bg-green-100 text-green-600 border-green-200"
+              >
+                <GitBranch className="h-4 w-4 mr-1" />
+                Generate Children
+              </Button>
+            </div>
+          )}
         </div>
       </>
     );
