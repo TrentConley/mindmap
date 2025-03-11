@@ -19,7 +19,7 @@ from models import (
     GenerateQuestionsRequest, AnswerRequest, UnlockCheckRequest, GraphDataRequest,
     ProgressResponse, QuestionResponse, AnswerResponse, UnlockCheckResponse,
     CreateMindMapRequest, MindMapNode, GeneratedMindMap, UpdateNodeStatusRequest,
-    GenerateChildNodesRequest
+    GenerateChildNodesRequest, ChatMessageRequest, ChatResponse, ChatMessage
 )
 from utils import check_children_completed, check_node_unlockable, build_node_relationships
 
@@ -336,7 +336,7 @@ async def generate_child_nodes_with_claude(parent_id: str, parent_content: str, 
                     content=f"This is a key component of {parent_label} that explores important concepts related to this subject.",
                     parent_id=parent_id
                 ))
-            logger.info(f"Created {len(default_nodes)} default child nodes for parent: {parent_id}")
+            logger.info(f"Created {len(default_nodes)} default child nodes after error for parent: {parent_id}")
             return default_nodes
         
         logger.info(f"Successfully generated {len(nodes)} child nodes for parent: '{parent_label}' (ID: {parent_id})")
@@ -1251,6 +1251,216 @@ async def generate_child_nodes(request: GenerateChildNodesRequest) -> Dict[str, 
     except Exception as e:
         logger.error(f"Error generating child nodes: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to generate child nodes: {str(e)}")
+
+
+@app.get("/api/chat/{node_id}")
+async def get_node_chat(node_id: str, session_id: str):
+    """Get the chat history for a specific node."""
+    logger.info(f"Getting chat history for node: {node_id} in session: {session_id}")
+    
+    # Get session data
+    session = get_session_data(session_id)
+    
+    # Check if node exists
+    if node_id not in session["graph_nodes"]:
+        raise HTTPException(status_code=404, detail=f"Node {node_id} not found")
+    
+    # Get or create chat history for this node
+    if "chat_history" not in session:
+        session["chat_history"] = {}
+        
+    if node_id not in session["chat_history"]:
+        node_info = session["graph_nodes"][node_id]
+        session["chat_history"][node_id] = {
+            "node_id": node_id,
+            "messages": [
+                {
+                    "id": str(uuid.uuid4()),
+                    "role": "assistant",
+                    "content": f"Hello! I'm your guide for learning about '{node_info.label}'. What would you like to know or discuss about this topic?",
+                    "created_at": datetime.utcnow()
+                }
+            ],
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+    
+    # Convert to ChatResponse model
+    messages = [
+        ChatMessage(
+            id=msg.get("id", str(uuid.uuid4())),
+            role=msg["role"],
+            content=msg["content"],
+            created_at=msg.get("created_at", datetime.utcnow())
+        ) for msg in session["chat_history"][node_id]["messages"]
+    ]
+    
+    return ChatResponse(
+        node_id=node_id,
+        messages=messages
+    )
+
+
+@app.post("/api/chat/{node_id}")
+async def send_chat_message(node_id: str, request: ChatMessageRequest):
+    """Send a message in the chat for a specific node and get a response."""
+    logger.info(f"Sending chat message for node: {node_id}")
+    
+    # Get session data
+    session_id = request.session_id
+    session = get_session_data(session_id)
+    
+    # Check if node exists
+    if node_id not in session["graph_nodes"]:
+        raise HTTPException(status_code=404, detail=f"Node {node_id} not found")
+    
+    # Get node information
+    node_info = session["graph_nodes"][node_id]
+    
+    # Initialize chat history dict if it doesn't exist
+    if "chat_history" not in session:
+        session["chat_history"] = {}
+    
+    # Get or create chat history for this node
+    if node_id not in session["chat_history"]:
+        session["chat_history"][node_id] = {
+            "node_id": node_id,
+            "messages": [
+                {
+                    "id": str(uuid.uuid4()),
+                    "role": "assistant",
+                    "content": f"Hello! I'm your guide for learning about '{node_info.label}'. What would you like to know or discuss about this topic?",
+                    "created_at": datetime.utcnow()
+                }
+            ],
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+    
+    # Add user message to chat history
+    user_message = {
+        "id": str(uuid.uuid4()),
+        "role": "user",
+        "content": request.message,
+        "created_at": datetime.utcnow()
+    }
+    session["chat_history"][node_id]["messages"].append(user_message)
+    
+    # Generate AI response using Claude
+    try:
+        # Get the relationships
+        relationships = session.get("relationships", {})
+        
+        # Get parent nodes to provide context
+        parent_ids = set()
+        for edge in session["graph_edges"]:
+            if edge.target == node_id:
+                parent_ids.add(edge.source)
+                
+        parent_nodes = []
+        for parent_id in parent_ids:
+            if parent_id in session["graph_nodes"]:
+                parent_node = session["graph_nodes"][parent_id]
+                parent_nodes.append({
+                    "label": parent_node.label,
+                    "content": parent_node.content
+                })
+        
+        # Get child nodes to provide context
+        child_ids = set()
+        for edge in session["graph_edges"]:
+            if edge.source == node_id:
+                child_ids.add(edge.target)
+                
+        child_nodes = []
+        for child_id in child_ids:
+            if child_id in session["graph_nodes"]:
+                child_node = session["graph_nodes"][child_id]
+                child_nodes.append({
+                    "label": child_node.label,
+                    "content": child_node.content
+                })
+        
+        # Get a message history formatted for Claude
+        message_history = []
+        for msg in session["chat_history"][node_id]["messages"]:
+            message_history.append({"role": msg["role"], "content": msg["content"]})
+            
+        # Create system prompt with context about the node
+        system_prompt = f"""You are an AI tutor specialized in teaching about '{node_info.label}'. 
+Your goal is to help the user understand this topic in depth.
+
+Here is the content about '{node_info.label}' that you should use as your primary source of information:
+---
+{node_info.content}
+---
+
+"""
+        
+        # Add parent and child node context if available
+        if parent_nodes:
+            system_prompt += "\nThis topic is related to these parent topics:\n"
+            for i, parent in enumerate(parent_nodes):
+                system_prompt += f"{i+1}. {parent['label']}: {parent['content'][:200]}...\n"
+        
+        if child_nodes:
+            system_prompt += "\nThis topic has these subtopics:\n"
+            for i, child in enumerate(child_nodes):
+                system_prompt += f"{i+1}. {child['label']}: {child['content'][:200]}...\n"
+        
+        system_prompt += "\nYour responses should be educational, accurate, and helpful. Encourage the user to ask questions and engage with the material."
+        
+        # Call Claude to generate a response
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        response = client.messages.create(
+            model="claude-3-7-sonnet-20240229",
+            system=system_prompt,
+            messages=message_history,
+            max_tokens=1000,
+            temperature=0.3,
+        )
+        
+        # Extract the response
+        ai_response = response.content[0].text
+        
+        # Add assistant response to chat history
+        assistant_message = {
+            "id": str(uuid.uuid4()),
+            "role": "assistant",
+            "content": ai_response,
+            "created_at": datetime.utcnow()
+        }
+        session["chat_history"][node_id]["messages"].append(assistant_message)
+        
+        # Update the chat history's updated_at timestamp
+        session["chat_history"][node_id]["updated_at"] = datetime.utcnow()
+        
+    except Exception as e:
+        logger.error(f"Error generating chat response: {str(e)}", exc_info=True)
+        # Add a fallback message
+        assistant_message = {
+            "id": str(uuid.uuid4()),
+            "role": "assistant",
+            "content": "I'm sorry, I encountered an error while processing your message. Please try again.",
+            "created_at": datetime.utcnow()
+        }
+        session["chat_history"][node_id]["messages"].append(assistant_message)
+    
+    # Convert to ChatResponse model
+    messages = [
+        ChatMessage(
+            id=msg.get("id", str(uuid.uuid4())),
+            role=msg["role"],
+            content=msg["content"],
+            created_at=msg.get("created_at", datetime.utcnow())
+        ) for msg in session["chat_history"][node_id]["messages"]
+    ]
+    
+    return ChatResponse(
+        node_id=node_id,
+        messages=messages
+    )
+
 
 if __name__ == "__main__":
     import uvicorn

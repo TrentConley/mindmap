@@ -17,6 +17,22 @@ class Question(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class ChatMessage(BaseModel):
+    """Message in a chat conversation about a node."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    role: str  # "user" or "assistant"
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class NodeChat(BaseModel):
+    """Chat history for a specific node."""
+    node_id: str
+    messages: List[ChatMessage] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class NodeStatus(BaseModel):
     """Status of a mind map node in the learning process."""
     node_id: str
@@ -57,6 +73,7 @@ class SessionData(BaseModel):
     edges: List[EdgeInfo] = Field(default_factory=list)
     progress: Dict[str, NodeStatus] = Field(default_factory=dict)
     relationships: Optional[NodeRelationships] = None
+    chat_history: Dict[str, NodeChat] = Field(default_factory=dict)  # node_id -> chat history
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -154,3 +171,16 @@ class MindMapNode(BaseModel):
 class GeneratedMindMap(BaseModel):
     """Complete mindmap structure returned from Anthropic."""
     nodes: List[MindMapNode] 
+
+
+class ChatMessageRequest(BaseModel):
+    """Request to send a chat message for a specific node."""
+    session_id: str
+    node_id: str
+    message: str
+
+
+class ChatResponse(BaseModel):
+    """Response with the chat history for a node."""
+    node_id: str
+    messages: List[ChatMessage]

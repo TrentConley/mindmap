@@ -238,3 +238,43 @@ export async function getProgress(sessionId: string) {
     handleApiError(error, 'getProgress');
   }
 }
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+}
+
+export interface ChatHistory {
+  node_id: string;
+  messages: ChatMessage[];
+}
+
+export async function getChatHistory(sessionId: string, nodeId: string) {
+  try {
+    console.log(`Getting chat history for node: ${nodeId}`);
+    const response = await axios.get<ChatHistory>(`${API_URL}/chat/${nodeId}`, {
+      params: { session_id: sessionId }
+    });
+    console.log('Chat history retrieved:', response.data);
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'getChatHistory');
+  }
+}
+
+export async function sendChatMessage(sessionId: string, nodeId: string, message: string) {
+  try {
+    console.log(`Sending chat message for node: ${nodeId}`);
+    const response = await axios.post<ChatHistory>(`${API_URL}/chat/${nodeId}`, {
+      session_id: sessionId,
+      node_id: nodeId,
+      message
+    });
+    console.log('Chat response received:', response.data);
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'sendChatMessage');
+  }
+}

@@ -19,6 +19,7 @@ import MindMapEdge from '@/components/edges/mindmap-edge';
 import NodeDetailModal from '@/components/node-detail-modal';
 import TopicSelector from '@/components/topic-selector';
 import QuizModal from '@/components/quiz-modal';
+import DeepDiveChat from '@/components/chat/deep-dive-chat';
 import { Button } from '@/components/ui/button';
 import { Question, generateQuestions, submitAnswer, getProgress, createMindMap, initializeSession, updateNodeStatus, generateChildNodes } from '@/lib/api';
 import { generateSessionId } from '@/lib/utils';
@@ -71,6 +72,8 @@ const MindMap: React.FC = () => {
   const [nodeQuestions, setNodeQuestions] = useState<Question[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false); // State for deep dive view
+  const [deepDiveNodeId, setDeepDiveNodeId] = useState<string | null>(null); // Track which node is being deep-dived
   const [isLoading, setIsLoading] = useState(false);
   const [fullNodes, setFullNodes] = useState<any[]>([]);
   const [fullEdges, setFullEdges] = useState<any[]>([]);
@@ -531,6 +534,33 @@ const MindMap: React.FC = () => {
     }
   }, [fullNodes, fullEdges, sessionId, focusedNode, focusOnNode]);
 
+  // Handle deep dive into a node
+  const handleDeepDive = useCallback((nodeId: string) => {
+    console.log(`Opening deep dive for node: ${nodeId}`);
+    
+    // Find the node in our nodes array
+    const node = fullNodes.find(n => n.id === nodeId);
+    if (!node) {
+      console.warn(`Node ${nodeId} not found in fullNodes`);
+      return;
+    }
+    
+    // Prevent interaction with locked nodes
+    if (node.data?.status === 'locked') {
+      console.warn(`Cannot deep dive into locked node: ${nodeId}`);
+      return;
+    }
+    
+    // Set the deep dive node and open the deep dive view
+    setDeepDiveNodeId(nodeId);
+    setIsDeepDiveOpen(true);
+    
+    // Focus on this node
+    setSelectedNode(nodeId);
+    focusOnNode(nodeId);
+    
+  }, [fullNodes, focusOnNode]);
+
   // Create nodeTypes with the view and quiz handlers - memoized to prevent recreation on each render
   const nodeTypesWithHandlers = useMemo(() => ({
     mindmap: (props: any) => (
@@ -539,9 +569,10 @@ const MindMap: React.FC = () => {
         onView={handleViewNode}
         onQuiz={handleQuizNode}
         onGenerateChildren={handleGenerateChildNodes}
+        onDeepDive={handleDeepDive}
       />
     )
-  }), [handleViewNode, handleQuizNode, handleGenerateChildNodes]);
+  }), [handleViewNode, handleQuizNode, handleGenerateChildNodes, handleDeepDive]);
 
   // Update the node processing to remove onView from data
   const processNodes = useCallback((inputNodes: any[]) => {
@@ -829,6 +860,25 @@ const MindMap: React.FC = () => {
     );
   }
 
+  // If deep dive is open, show the deep dive chat interface
+  if (isDeepDiveOpen && deepDiveNodeId) {
+    const nodeInfo = fullNodes.find(n => n.id === deepDiveNodeId);
+    const nodeName = nodeInfo?.data?.label || 'Topic';
+    
+    return (
+      <DeepDiveChat
+        sessionId={sessionId}
+        nodeId={deepDiveNodeId}
+        nodeName={nodeName}
+        onBack={() => {
+          setIsDeepDiveOpen(false);
+          setDeepDiveNodeId(null);
+        }}
+      />
+    );
+  }
+
+  // Otherwise show the normal mindmap interface
   return (
     <div className="h-full">
       <ReactFlow

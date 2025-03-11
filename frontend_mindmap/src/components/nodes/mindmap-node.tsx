@@ -7,7 +7,7 @@ import {
   NodeHeaderActions,
   NodeHeaderIcon,
 } from '@/components/node-header';
-import { Brain, Unlock, Lock, Eye, GitBranch } from 'lucide-react';
+import { Brain, Unlock, Lock, Eye, GitBranch, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LatexContent from '@/components/ui/latex-content';
 import { truncateText } from '@/lib/utils';
@@ -18,6 +18,7 @@ interface MindMapNodeProps extends NodeProps {
   onView?: (nodeId: string) => void;
   onQuiz?: (nodeId: string) => void;
   onGenerateChildren?: (nodeId: string) => void;
+  onDeepDive?: (nodeId: string) => void; // New prop for deep dive
   isLocked?: boolean;
   data: {
     label: string;
@@ -27,6 +28,7 @@ interface MindMapNodeProps extends NodeProps {
     onView?: (nodeId: string) => void;
     onQuiz?: (nodeId: string) => void;
     onGenerateChildren?: (nodeId: string) => void;
+    onDeepDive?: (nodeId: string) => void; // New data prop for deep dive
   };
 }
 
@@ -38,6 +40,7 @@ const MindMapNode = memo(({
   onView,
   onQuiz,
   onGenerateChildren,
+  onDeepDive,
   isLocked = false
 }: MindMapNodeProps) => {
   const [expanded, setExpanded] = useState(false);
@@ -84,6 +87,17 @@ const MindMapNode = memo(({
         onGenerateChildren(nodeId);
       } else if (data && data.onGenerateChildren) {
         data.onGenerateChildren(nodeId);
+      }
+    }
+  };
+  
+  const handleDeepDive = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (nodeId) {
+      if (onDeepDive) {
+        onDeepDive(nodeId);
+      } else if (data && data.onDeepDive) {
+        data.onDeepDive(nodeId);
       }
     }
   };
@@ -176,20 +190,31 @@ const MindMapNode = memo(({
             </div>
           </div>
           
-          {/* Generate Children button - only show for completed nodes */}
-          {data.status === 'completed' && (
-            <div className="flex justify-center w-full">
+          <div className="flex gap-2">
+            {/* Deep Dive button - interactive learning through chat */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDeepDive}
+              className="flex-1 bg-purple-50 hover:bg-purple-100 text-purple-600 border-purple-200"
+            >
+              <MessageCircle className="h-4 w-4 mr-1" />
+              Deep Dive
+            </Button>
+            
+            {/* Generate Children button - only show for completed nodes */}
+            {data.status === 'completed' && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleGenerateChildren}
-                className="w-full bg-green-50 hover:bg-green-100 text-green-600 border-green-200"
+                className="flex-1 bg-green-50 hover:bg-green-100 text-green-600 border-green-200"
               >
                 <GitBranch className="h-4 w-4 mr-1" />
                 Generate Children
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </>
     );
